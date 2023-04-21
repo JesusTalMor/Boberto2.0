@@ -1,0 +1,78 @@
+<?xml version="1.0"?> 
+<robot name="PuzzleBot"> 
+  <!-- ?Creamos un marco de referencia base: Nombre Base Link -->
+  <!-- Para que esta madre jale debes usar un paquete de URDF Publisher mientras tanto no sirve para nada -->
+  <material name="PURPLE"> 
+    <color rgba="0.8 0.0 1.0 1.0"/> 
+  </material> 
+
+  <link name="base_link"> 
+    <pose>0 0 0 0 0 0</pose> 
+    <visual> 
+      <origin rpy="1.5707963 0.0 1.5707963" xyz="0 0 0.0"/> 
+      <geometry> 
+        <mesh filename="file://$(find puzzlebot_sim)/descriptions/MCR2_1000_13_Chassis.stl"/> 
+      </geometry>
+      <material name="PURPLE"/> 
+    </visual> 
+  </link> 
+  
+  <!-- *Creamos un joint con el frame del Chassis -->
+  <!-- <joint name="base_link_to_chassis" type="fixed"> 
+    <parent link="base_link"/> 
+    <child link="chassis"/> 
+  </joint>   -->
+  
+  <!-- ?Definimos bien el link del Chassis -->
+  <!-- <link name="chassis"> 
+    <visual> 
+      <origin rpy="1.5707963 0.0 1.5707963" xyz="0 0 0.0"/> 
+      <geometry> 
+        <mesh filename="file://$(find puzzlebot_sim)/descriptions/MCR2_1000_13_Chassis.stl"/> 
+      </geometry>
+      <material name="PURPLE"/> 
+    </visual> 
+  </link>  -->
+
+  <!-- ?JOINTS  -->  
+  <!-- ?Definimos Joint para la rueda derecha -->
+  <joint name="base_to_right_w" type="continuous"> 
+    <parent link="base_link" /> 
+    <child link="right_wheel" /> 
+    <origin xyz="0.05 -0.09 0.0" /> 
+    <axis xyz="0 1 0" rpy="0 0 0" /> 
+  </joint> 
+
+  <!-- ?Definimos el Joint para la rueda izquierda -->
+  <joint name="base_to_left_w" type="continuous"> 
+    <parent link="base_link" /> 
+    <child link="left_wheel" /> 
+    <origin xyz="0.05 0.09 0" /> 
+    <axis xyz="0 1 0" rpy="0 0 0" /> 
+  </joint> 
+
+  <!-- ?Definir link de rueda derecha RIGHT WHEEL --> 
+  <link name="right_wheel"> 
+    <visual> 
+      <!--pi=3.14159265     pi/2= 1.57079632--> 
+      <origin xyz="0 0 0" rpy="-1.57079632 0 0" /> 
+      <geometry> 
+        <!-- with mesh--> 
+        <mesh filename="file://$(find puzzlebot_sim)/descriptions/MCR2_1000_1_1_Wheel_Coupler_2.stl"/> 
+      </geometry> 
+      <material name="PURPLE"/>
+    </visual>           
+  </link> 
+
+  <!-- ? Definir link de rueda izquierda LEFT WHEEL --> 
+  <link name="left_wheel"> 
+    <visual> 
+      <!--pi=3.14159265     pi/2= 1.57079632--> 
+      <origin xyz="0 0 0" rpy="1.57079632 0 0" /> 
+      <geometry> 
+        <mesh filename="file://$(find puzzlebot_sim)/descriptions/MCR2_1000_1_1_Wheel_Coupler_2.stl"/> 
+      </geometry> 
+      <material name="PURPLE"/>
+    </visual>           
+  </link> 
+</robot> 

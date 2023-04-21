@@ -1,0 +1,22 @@
+<launch>
+  <!-- * Iniciando mundo de gazebo y puzzlebot -->
+  <include file="$(find puzzlebot_gazebo)/launch/puzzlebot_gazebo_modified.launch" />
+  <!--  * Cargar modelo del robot en URDF -->
+  <!-- <arg name="model" default="$(find puzzlebot_sim)/URDF/puzzlebot_sim.urdf"/> -->
+  <!-- <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/> -->
+  
+  <!-- * Lanzar nodo de RVIZ -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find puzzlebot_sim)/rviz/mini_challenge_2_config.rviz"/>
+  
+  <!-- * Lanzar nodo de simulación en RVIZ -->
+  <!-- <node pkg='puzzlebot_sim' type='puzzlebot_kinematic_model.py' name='kinematic_model'/> -->
+  
+  <!-- * Lanzar nodo de tf broadcaster -->
+  <!-- <node pkg='puzzlebot_sim' type='tf_broadcaster.py' name='rviz_marker'/> -->
+  
+  <!-- * Lanzar nodo para localizacion para ODOM -->
+  <node pkg='puzzlebot_sim' type='localisation.py' name='localisation_odom' output='screen'/>
+  
+  <!-- * Lanzar nodo de control basico con texto -->
+  <node pkg='begin_tutorial' type='jesus_robot_control.py' name='yisus_robot_control' output='screen'/>
+</launch>
