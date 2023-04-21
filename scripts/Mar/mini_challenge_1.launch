@@ -1,0 +1,7 @@
+<launch>
+  <!-- Lanzar nodo de RVIZ -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find puzzlebot_sim)/rviz/mini_challenge_1_config.rviz"/>
+
+  <!-- Lanzar nodo de control basico con texto -->
+  <node pkg='beginner_tutorials' type='robot_control.py' name='node_robot_control' output='screen'/>
+</launch>
