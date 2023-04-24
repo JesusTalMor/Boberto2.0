@@ -1,7 +1,11 @@
 <launch>
   <!-- * Iniciando mundo de gazebo y puzzlebot -->
+<<<<<<< HEAD
   <!-- <include file="$(find puzzlebot_gazebo)/launch/puzzlebot_gazebo_modified.launch" /> -->
   
+=======
+  <include file="$(find puzzlebot_sim)/launch/puzzlebot_gazebo_modified.launch" />
+>>>>>>> marcos
   <!--  * Cargar modelo del robot en URDF -->
   <arg name="model" default="$(find puzzlebot_sim)/URDF/puzzlebot_sim.urdf"/>
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
