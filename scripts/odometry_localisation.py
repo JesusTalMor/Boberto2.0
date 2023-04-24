@@ -132,7 +132,7 @@ class LocalizationClass():
       # Sigma_pose -> 3x3 pose covariance matrix 
       odom=Odometry() 
       odom.header.stamp =rospy.Time.now() 
-      odom.header.frame_id = "base_link"  # "odom" 
+      odom.header.frame_id = "odom"  # "odom" 
       odom.child_frame_id = "chassis" 
       odom.pose.pose.position.x = x 
       odom.pose.pose.position.y = y 
