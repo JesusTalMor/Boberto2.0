@@ -1,6 +1,5 @@
 <launch>
-  <!-- * Iniciando mundo de gazebo y puzzlebot -->
-    <include file="$(find puzzlebot_sim)/launch/puzzlebot_gazebo_modified.launch" />
+
 
   <!--  * Cargar modelo del robot en URDF -->
     <arg name="model" default="$(find puzzlebot_sim)/URDF/puzzlebot_sim.urdf"/> 
@@ -23,5 +22,9 @@
 
   <!-- * Lanzar nodo de control basico con texto -->
     <node pkg='puzzlebot_sim' type='main_robot_control.py' name='main_robot_control' output='screen'/>
+
+
+  <!-- * Iniciando mundo de gazebo y puzzlebot -->
+    <include file="$(find puzzlebot_sim)/launch/puzzlebot_gazebo_modified.launch" />
 
 </launch>

@@ -84,6 +84,15 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        chassis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
           Value: true
         left_wheel:
           Alpha: 1

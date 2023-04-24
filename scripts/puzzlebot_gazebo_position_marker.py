@@ -9,7 +9,7 @@ from tf.transformations import quaternion_from_euler
 
 def fill_marker(pose=Pose()): 
     marker = Marker() 
-    marker.header.frame_id = "odom" 
+    marker.header.frame_id = "chassis" 
     marker.header.stamp = rospy.Time.now() 
     # set shape, Arrow: 0; Cube: 1 ; Sphere: 2 ; Cylinder: 3; Mesh: 10 
     marker.type = 10 
@@ -17,7 +17,7 @@ def fill_marker(pose=Pose()):
 
     # Use the stl file MCR2_1000_13_Chassis.stl,  
     #marker.mesh_resource = "package://puzzlebot_sim/meshes/MCR2_1000_0_Puzzlebot.stl" 
-    marker.mesh_resource = "package://puzzlebot_sim/meshes/MCR2_1000_0_Puzzlebot.stl" 
+    marker.mesh_resource = "package://puzzlebot_sim/descriptions/MCR2_1000_0_Puzzlebot.stl" 
 
     # Set the scale of the marker 
     marker.scale.x = 1 
