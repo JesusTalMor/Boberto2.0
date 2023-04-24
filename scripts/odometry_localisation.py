@@ -12,7 +12,7 @@ np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
 class LocalizationClass():  
   def __init__(self):  
     #?#********** PUBLICADORES **********###  
-    self.odom_pub = rospy.Publisher("odom_local", Odometry, queue_size=1) 
+    self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1) 
     #?#********** SUSCRIPTORES **********###  
     rospy.Subscriber("wl", Float32, self.wl_cb ) 
     rospy.Subscriber("wr", Float32, self.wr_cb ) 
@@ -132,7 +132,7 @@ class LocalizationClass():
       # Sigma_pose -> 3x3 pose covariance matrix 
       odom=Odometry() 
       odom.header.stamp =rospy.Time.now() 
-      odom.header.frame_id = "base_link"  # "odom" 
+      odom.header.frame_id = "odom"
       odom.child_frame_id = "chassis" 
       odom.pose.pose.position.x = x 
       odom.pose.pose.position.y = y 
