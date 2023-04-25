@@ -3,6 +3,7 @@ import rospy
 from nav_msgs.msg import Odometry 
 from std_msgs.msg import Float32 
 from tf.transformations import quaternion_from_euler 
+from visualization_msgs.msg import Marker 
 
 import numpy as np
 #? Funcionalidad para imprimir matrices en terminal usando Numpy
@@ -13,11 +14,13 @@ class LocalizationClass():
   def __init__(self):  
     #?#********** PUBLICADORES **********###  
     self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1) 
+    self.marker_pub = rospy.Publisher("perfect_marker", Marker, queue_size=1)
     #?#********** SUSCRIPTORES **********###  
     rospy.Subscriber("wl", Float32, self.wl_cb ) 
     rospy.Subscriber("wr", Float32, self.wr_cb ) 
 
     odom = Odometry() # Mensaje de odometria para RVIZ
+
     #?#********** ROBOT CONSTANTS **********###  
     r=0.05 #[m] Radio de las llantas
     L=0.18 #[m] Separacion entre llantas 
@@ -115,6 +118,8 @@ class LocalizationClass():
       init_time = current_time 
 
       odom = self.fill_odom(x, y, theta, covar_matrix, v, w) 
+      marker = self.fill_marker_perfect(odom)
+      self.marker_pub.publish(marker)
       self.odom_pub.publish(odom) 
       rate.sleep() 
 
@@ -156,6 +161,42 @@ class LocalizationClass():
       odom.twist.twist.linear.x = v 
       odom.twist.twist.angular.z = w 
       return odom 
+  
+  def fill_marker_perfect(self, odom = Odometry()):
+    marker = Marker()
+    marker.header.frame_id = "odom"
+    marker.header.stamp = rospy.Time.now()
+
+    marker.type = 10
+    marker.id = 1
+
+    marker.mesh_resource = "package://puzzlebot_sim/descriptions/MCR2_1000_0_Puzzlebot.stl" 
+
+    # Set the scale of the marker 
+    marker.scale.x = 1 
+    marker.scale.y = 1 
+    marker.scale.z = 1 
+
+    # Set the color 
+    marker.color.r = 1.0 
+    marker.color.g = 0.0 
+    marker.color.b = 1.0 
+    marker.color.a = 1.0     
+
+        # Set the pose of the marker 
+    marker.pose.position.x = odom.pose.pose.position.x
+    marker.pose.position.y = odom.pose.pose.position.y
+    marker.pose.position.z = 0.0 
+
+    # Set the marker orientation 
+    #quat=quaternion_from_euler(0.0,0.0,theta) 
+    marker.pose.orientation.x = odom.pose.pose.orientation.x
+    marker.pose.orientation.y = odom.pose.pose.orientation.y
+    marker.pose.orientation.z = odom.pose.pose.orientation.z
+    marker.pose.orientation.w = odom.pose.pose.orientation.w
+
+    return marker
+    
 ############################### MAIN PROGRAM ####################################  
 if __name__ == "__main__":  
     rospy.init_node('localization')  

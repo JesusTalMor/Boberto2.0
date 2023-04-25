@@ -9,7 +9,7 @@ from tf.transformations import quaternion_from_euler
 
 def fill_marker(pose=Pose()): 
     marker = Marker() 
-    marker.header.frame_id = "chassis" 
+    marker.header.frame_id = "odom" 
     marker.header.stamp = rospy.Time.now() 
     # set shape, Arrow: 0; Cube: 1 ; Sphere: 2 ; Cylinder: 3; Mesh: 10 
     marker.type = 10 
@@ -46,6 +46,7 @@ def fill_marker(pose=Pose()):
 
 
 rospy.init_node('puzzlebot_gazebo_marker') 
+
 marker_odom_pub = rospy.Publisher("/gazebo_marker", Marker, queue_size = 1) 
 odom_marker=Marker() 
 odom_marker.pose.orientation.w=1.0 
