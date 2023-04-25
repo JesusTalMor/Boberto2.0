@@ -13,14 +13,15 @@ import tf2_ros
 class PuzzlebotTfClass():  
   def __init__(self):  
     rospy.Subscriber("pose_sim", PoseStamped, self.pose_sim_cb) 
-    rospy.Subscriber("wl", Float32, self.get_wl_pose) 
-    rospy.Subscriber("wr", Float32, self.get_wr_pose) 
+    rospy.Subscriber("wl", Float32, self.get_wl) 
+    rospy.Subscriber("wr", Float32, self.get_wr) 
     # self.marker1_pub = rospy.Publisher("puzzlebot_marker", Marker, queue_size = 1)
     # self.marker2_pub = rospy.Publisher("left_wheel_marker", Marker, queue_size = 1)
     # self.marker3_pub = rospy.Publisher("right_wheel_marker", Marker, queue_size = 1) 
     self.tf_br = tf2_ros.TransformBroadcaster() 
     self.robot_pose = PoseStamped() 
     self.robot_pose.pose.orientation.w = 1.0 #this is necessary to avoid errors with the quaternion. 
+    self.delta_t = 0.02 # Desired time to update the robot's pose [s] 
     wr_pos = 0.0 # Right Wheel position [rad]
     wl_pos = 0.0 # Left Wheel position [rad]
     self.wr = 0.0
