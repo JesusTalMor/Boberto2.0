@@ -5,9 +5,9 @@
     <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/> 
 
   <!-- * Lanzar nodo de RVIZ -->
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find puzzlebot_sim)/rviz/mini_challenge_2_config.rviz"/>
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find puzzlebot_sim)/rviz/MC_2.rviz"/>
 
-  <!-- * Lanzar nodo de simulación en RVIZ -->
+  <!-- * Lanzar nodo simulador para RVIZ-->
     <node pkg='puzzlebot_sim' type='simulated_kinematic_model.py' name='kinematic_model'/>
 
   <!-- * Lanzar nodo de tf broadcaster -->
