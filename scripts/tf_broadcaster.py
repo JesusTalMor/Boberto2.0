@@ -13,21 +13,24 @@ import tf2_ros
 class PuzzlebotTfClass():  
   def __init__(self):  
     rospy.Subscriber("pose_sim", PoseStamped, self.pose_sim_cb) 
-    rospy.Subscriber("wl_pos", Float32, self.get_wl_pose) 
-    rospy.Subscriber("wr_pos", Float32, self.get_wr_pose) 
+    rospy.Subscriber("wl", Float32, self.get_wl_pose) 
+    rospy.Subscriber("wr", Float32, self.get_wr_pose) 
     # self.marker1_pub = rospy.Publisher("puzzlebot_marker", Marker, queue_size = 1)
     # self.marker2_pub = rospy.Publisher("left_wheel_marker", Marker, queue_size = 1)
     # self.marker3_pub = rospy.Publisher("right_wheel_marker", Marker, queue_size = 1) 
     self.tf_br = tf2_ros.TransformBroadcaster() 
     self.robot_pose = PoseStamped() 
-    self.left_wheel_pos = 0.0
-    self.right_wheel_pos = 0.0
     self.robot_pose.pose.orientation.w = 1.0 #this is necessary to avoid errors with the quaternion. 
+    wr_pos = 0.0 # Right Wheel position [rad]
+    wl_pos = 0.0 # Left Wheel position [rad]
+    self.wr = 0.0
+    self.wl = 0.0
     rate = rospy.Rate(50) # The rate of the while loop 
-    while not rospy.is_shutdown(): 
+    while not rospy.is_shutdown():
+      [wl_pos, wr_pos] = self.get_wheel_pose((self.wl,self.wr), (wl_pos, wr_pos)) # TODO DONE
       self.send_base_link_tf(self.robot_pose) 
-      self.send_left_wheel_tf(self.left_wheel_pos)
-      self.send_right_wheel_tf(self.right_wheel_pos)
+      self.send_left_wheel_tf(wl_pos)
+      self.send_right_wheel_tf(wr_pos)
       ######## Publish a marker to rviz ######### 
       # marker = self.fill_base_link_marker() 
       # self.marker1_pub.publish(marker) 
@@ -39,8 +42,17 @@ class PuzzlebotTfClass():
 
     
   def pose_sim_cb(self, msg): self.robot_pose = msg 
-  def get_wl_pose(self, msg=Float32()): self.left_wheel_pos = msg.data
-  def get_wr_pose(self, msg=Float32()): self.right_wheel_pos = msg.data
+  def get_wl(self, msg=Float32()): self.wl = msg.data
+  def get_wr(self, msg=Float32()): self.wr = msg.data
+
+
+  def get_wheel_pose(self, wheel_vel, pose_ant):
+    # Desempaquetar las variables
+    wl, wr = wheel_vel
+    wl_pos, wr_pos = pose_ant
+    wl_pos += wl*self.delta_t
+    wr_pos += wr*self.delta_t
+    return [wl_pos, wr_pos]
 
   def send_base_link_tf(self, pose_stamped=PoseStamped()): 
     # This receives the robot's pose and broadcast a transformation. 
