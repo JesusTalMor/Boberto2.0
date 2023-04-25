@@ -138,7 +138,7 @@ class LocalizationClass():
       odom=Odometry() 
       odom.header.stamp =rospy.Time.now() 
       odom.header.frame_id = "odom"  # "odom" 
-      odom.child_frame_id = "chassis" 
+      odom.child_frame_id = "base_link" #"chassis" 
       odom.pose.pose.position.x = x 
       odom.pose.pose.position.y = y 
       odom.pose.pose.position.z = 0.0 

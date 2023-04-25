@@ -23,8 +23,6 @@ class PuzzlebotKinClass():
     self.pose_sim_pub = rospy.Publisher('pose_sim', PoseStamped ,queue_size=1) #Publisher to pose_sim topic 
     self.wr_pub = rospy.Publisher('wr', Float32 ,queue_size=1) # Publisher to wr topic 
     self.wl_pub = rospy.Publisher('wl', Float32 ,queue_size=1) # Publisher to wl topic 
-    self.wr_pos_pub = rospy.Publisher('wr_pos', Float32 ,queue_size=1) # Publisher to wr_pos topic 
-    self.wl_pos_pub = rospy.Publisher('wl_pos', Float32 ,queue_size=1) # Publisher to wl_pos topic 
     
     #?#********** ROBOT CONSTANTS **********###    
     self.r = 0.05 #puzzlebot wheel radius [m] 
@@ -38,8 +36,6 @@ class PuzzlebotKinClass():
     x = 0.0   # robot position in X axis [m]
     y = 0.0   # robot position in Y axis [m]
     theta = 0.0 # robot orientation in Z axis [rad]
-    wr_pos = 0.0 # Right Wheel position [rad]
-    wl_pos = 0.0 # Left Wheel position [rad]
     
     #?#********** MAIN LOOP **********###  
     while not rospy.is_shutdown(): 
@@ -49,14 +45,13 @@ class PuzzlebotKinClass():
       pose_stamped = self.get_pose_stamped(x, y, theta)
       #* Get current wheel angular velocity and position
       [wl, wr] = self.get_wheel_speeds(self.v, self.w) # TODO DONE
-      [wl_pos, wr_pos] = self.get_wheel_pose((wl,wr), (wl_pos, wr_pos)) # TODO DONE
       
       #********** PUBLISH to TOPICS **********# 
       self.pose_sim_pub.publish(pose_stamped) 
       self.wr_pub.publish(wr) 
       self.wl_pub.publish(wl) 
-      self.wl_pos_pub.publish(wl_pos)
-      self.wr_pos_pub.publish(wr_pos)
+      # self.wl_pos_pub.publish(wl_pos)
+      # self.wr_pos_pub.publish(wr_pos)
       rate.sleep() 
 
   def cmd_vel_cb(self, msg=Twist()): 
@@ -69,14 +64,6 @@ class PuzzlebotKinClass():
     wr = ((2*v) + (w*self.L))/(2*self.r)
     wl = ((2*v) - (w*self.L))/(2*self.r) 
     return [wl, wr] 
-
-  def get_wheel_pose(self, wheel_vel, pose_ant):
-    # Desempaquetar las variables
-    wl, wr = wheel_vel
-    wl_pos, wr_pos = pose_ant
-    wl_pos += wl*self.delta_t
-    wr_pos += wr*self.delta_t
-    return [wl_pos, wr_pos]
 
   def get_pose_stamped(self, x, y, yaw): 
     # x, y and yaw are the robot's position (x,y) and orientation (yaw) 
