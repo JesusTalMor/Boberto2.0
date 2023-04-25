@@ -39,8 +39,8 @@ class LocalizationClass():
     covar_matrix = np.zeros([3,3])
 
     #?#********** GANANCIAS COVARIANZA **********### 
-    wr_ruido = 1 # TODO Actualizar estas ganancias
-    wl_ruido = 1
+    wr_ruido = 0.087 # TODO Actualizar estas ganancias
+    wl_ruido = 0.087
 
     #? Esperar hasta que recibamos un tiempo de simulacion
     while rospy.get_time() == 0:  print("Sin tiempo de simulacion recibido") 

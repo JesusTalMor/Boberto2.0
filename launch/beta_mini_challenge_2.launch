@@ -23,7 +23,7 @@
     <node pkg='puzzlebot_sim' type='puzzlebot_gazebo_position_marker.py' name='gazebo_pos_marker' output='screen'/>
 
   <!-- * Lanzar nodo de control basico con texto - para hacer que se mueva-->
-    <node pkg='puzzlebot_sim' type='main_robot_control.py' name='main_robot_control' output='screen'/>
+  <!--*  <node pkg='puzzlebot_sim' type='main_robot_control.py' name='main_robot_control' output='screen'/> -->
 
 
   <!-- * Iniciando mundo de gazebo y puzzlebot -->
