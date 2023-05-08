@@ -263,20 +263,17 @@ class GoToGoal():
         ## This function computes the linear and angular speeds for the robot 
         # It receives thetaFW [rad]    
         #Compute linear and angular speeds 
-        #kw = 1.5 #angular vel gain
-        v = 0.1 #lineal vel is constant [m/s]
         kw = 1.2
-        if abs(thetaFW) > np.pi/4:
-            print("Girar Brusco")
+        if abs(thetaFW) > np.pi/5:
             v = 0.0
             w = kw *thetaFW
         elif closest_range > 0.4:
-            print("Acercarse")
             kw = 0.5
             w = kw*(thetaFW + closest_angle/2.0)
+            v = 0.1 #lineal vel is constant [m/s]
         else:
-            print("Follow Wall comun")
             w = kw *thetaFW
+            v = 0.2 #lineal vel is constant [m/s]
 
         return v, w
 
