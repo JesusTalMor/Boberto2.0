@@ -6,8 +6,37 @@ from sensor_msgs.msg import LaserScan   #Lidar
 import numpy as np 
 
 class Robot(): 
-    #This class implements the differential drive model of the robot 
+    '''
+    This class implements the differential drive model of the robot
+
+    ...
+
+    Attributes
+    ----------
+    ROBOT CONSTANTS
+
+    r: float
+        wheel radius [m]
+    L: float
+        wheel seperation[m]
+    
+    VARIABLES
+
+    x: float
+        x position of the robot [m]
+    y: float
+        y position of the robot [m]
+    theta: float
+        angle position of the robot [rad]
+    '''
     def __init__(self): 
+        '''
+        The constructor for Robot class
+
+        Parameters
+        ----------
+        None
+        '''
         ############ ROBOT CONSTANTS ################  
         self.r=0.05 #wheel radius [m] 
         self.L = 0.18 #wheel separation [m] 
@@ -31,7 +60,6 @@ class Robot():
         self.x=self.x+vx*delta_t  
         self.y=self.y+vy*delta_t 
 
- 
 
 #This class will make the puzzlebot move to a given goal 
 class GoToGoal():  
@@ -114,7 +142,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'Clockwise': 
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
+                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) <= np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
@@ -126,7 +154,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'CounterClockwise':
-                    if d_t < (D_Fw-0.5) and (thetaAO-thetaGTG) < np.pi/2.0: #Clear Shot
+                    if d_t < (D_Fw- progress) and abs(thetaAO-thetaGTG) > np.pi/2.0: #Clear Shot
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
                     else:
@@ -318,6 +346,7 @@ class GoToGoal():
  
 
 ############################### MAIN PROGRAM ####################################  
-if __name__ == "__main__":  
+if __name__ == "__main__":
     rospy.init_node("bug_0", anonymous=True)  
     GoToGoal()  
+    
