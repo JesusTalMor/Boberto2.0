@@ -46,9 +46,11 @@ class Robot():
         self.theta = 0.0 #angle of the robot [rad] 
 
     def update_state(self, wr, wl, delta_t): 
-        #This function returns the robot's state 
+        '''
+        UPDATE the robot's state 
         #This functions receives the wheel speeds wr and wl in [rad/sec]  
-        # and returns the robot's state 
+        # and returns the robot's state
+        '''
         v=self.r*(wr+wl)/2 
         w=self.r*(wr-wl)/self.L 
         self.theta=self.theta + w*delta_t 
@@ -69,20 +71,20 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         ############ Variables ############### 
-        self.x_target= 1.0 #x position of the goal 
-        self.y_target= 5.5 #y position of the goal 
-        self.goal_received=1 #flag to indicate if the goal has been received 
+        self.x_target= 0.0 #x position of the goal 
+        self.y_target= 0.0 #y position of the goal 
+        self.goal_received=0 #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         self.target_position_tolerance=0.20 #target position tolerance [m] 
 
-        fw_distance = 0.45 # distance to activate the following walls behavior [m] 
+        fw_distance = 0.35 # distance to activate the following walls behavior [m] 
         progress = 0.3 #If the robot is this close to the goal with respect to when it started following walls it will stop following walls 
         v_msg=Twist() #Robot's desired speed  
 
         self.wr=0 #right wheel speed [rad/s] 
         self.wl=0 #left wheel speed [rad/s] 
 
-        self.current_state = 'GoToGoal' #Robot's current state 
+        self.current_state = 'Stop' #Robot's current state 
 
         rospy.on_shutdown(self.cleanup)  
 
@@ -105,7 +107,7 @@ class GoToGoal():
         ################ MAIN LOOP ################  
         while not rospy.is_shutdown():  
             self.robot.update_state(self.wr, self.wl, Dt) #update the robot's state 
-            if self.lidar_received: 
+            if self.lidar_received and self.goal_received == 1: 
 
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
                 thetaAO = self.get_theta_ao(closest_angle) 
@@ -279,8 +281,13 @@ class GoToGoal():
         ## This function computes the linear and angular speeds for the robot 
         # It receives thetaFW [rad]    
         #Compute linear and angular speeds 
-        kw = 1.5 #angular vel gain
-        v = 0.14 #lineal vel is constant [m/s]
+        #kw = 1.8 #angular vel gain
+        v = 0.16 #lineal vel is constant [m/s]
+        if abs(thetaFW) > np.pi/3.0:
+            v = 0.0
+            kw = 1.2
+        else:
+            kw = 1.8
         w = kw *thetaFW
 
         return v, w
