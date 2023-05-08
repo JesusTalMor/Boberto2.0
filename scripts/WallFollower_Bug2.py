@@ -31,16 +31,15 @@ class Robot():
         self.x=self.x+vx*delta_t  
         self.y=self.y+vy*delta_t 
 
- 
 
-#This class will make the puzzlebot move to a given goal 
-class GoToGoal():  
+class GoToGoal():
+    '''This class will make the puzzlebot move to a given goal'''
     def __init__(self):  
         rospy.on_shutdown(self.cleanup) 
 
         self.robot=Robot() #create an object of the Robot class 
 
-        ############ Variables ############### 
+        #?########### Variables ############### 
         self.x_target= 1.0 #x position of the goal 
         self.y_target= 5.5 #y position of the goal 
         self.goal_received=1 #flag to indicate if the goal has been received 
@@ -56,9 +55,17 @@ class GoToGoal():
 
         self.current_state = 'GoToGoal' #Robot's current state 
 
+        #? ######## Point to Line variables#######
+        #TODO Agregar variables para definir la recta de manera general DONE
+        A = 0.0
+        B = 0.0
+        C = 0.0
+        d_p2line = 0.0 # distance point to line
+        self.calculate_line = True
+
         rospy.on_shutdown(self.cleanup)  
 
-        ###******* INIT PUBLISHERS *******###  
+        #?#******* INIT PUBLISHERS *******###  
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
         ############################### SUBSCRIBERS #####################################  
         rospy.Subscriber("wl", Float32, self.wl_cb)  
@@ -66,7 +73,7 @@ class GoToGoal():
         rospy.Subscriber("move_base_simple/goal", PoseStamped, self.goal_cb) 
         rospy.Subscriber("base_scan", LaserScan, self.laser_cb) 
 
-        #********** INIT NODE **********###  
+        #?#********** INIT NODE **********###  
         freq=10
         rate = rospy.Rate(freq) #freq Hz  
         Dt =1.0/float(freq) #Dt is the time between one calculation and the next one 
@@ -74,20 +81,26 @@ class GoToGoal():
         print("Please send a Goal from rviz using the button: 2D Nav Goal") 
         print("You can also publish the goal to the (move_base_simple/goal) topic.") 
 
-        ################ MAIN LOOP ################  
+        #?############### MAIN LOOP ################  
         while not rospy.is_shutdown():  
             self.robot.update_state(self.wr, self.wl, Dt) #update the robot's state 
             if self.lidar_received: 
+                if self.calculate_line is True:
+                    # TODO Fill parameters
+                    A,B,C = self.get_eq_values()
+                    pass
 
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
                 thetaAO = self.get_theta_ao(closest_angle) 
                 thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
                 d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) # Current distance from the robot's position to the goal
-
+                #TODO Calcular la distancia de un punto a una recta
+                d_p2line = self.distance2line()
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal():  
                     print("Goal reached") 
                     self.current_state = 'Stop' 
+                    self.calculate_line = True
                     #print("Stop") 
                     v_msg.linear.x = 0 
                     v_msg.angular.z = 0 
@@ -114,6 +127,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'Clockwise': 
+                    #TODO cambiar al if por la condicion de que la distancia del robot a la recta sea menor a un valor de tolerancia
                     if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
@@ -126,6 +140,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'CounterClockwise':
+                    #TODO cambiar al if por la condicion de que la distancia del robot a la recta sea menor a un valor de tolerancia
                     if d_t < (D_Fw-0.5) and (thetaAO-thetaGTG) < np.pi/2.0: #Clear Shot
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
@@ -276,7 +291,39 @@ class GoToGoal():
 
         return (x,y)  
 
-     
+    def get_eq_values(self,x1,y1,x2,y2): 
+        '''
+        This function calculate A,B,C that we gonna use to point to line function
+        '''
+        '''
+        x1,y1 corresponds to x and y robot
+        x2,y2 corresponds to x and y goal
+        '''
+        '''
+        y-y1 = m(x-x1)
+        0 = m*x-m*x1 + y1 - y
+
+        A = m
+        B = -1 
+        C = -m*x1 + y1
+
+        0 = Ax + By + C
+        '''
+        #TODO Calculate m (pendiente) m = y2-y1/x2-x1
+        #TODO Calcular A,B,C 
+        #TODO Cambiar bandera
+        #TODO return A,B,C
+        pass
+
+    def distance2line(self,A,B,C,x1,y1):
+        '''
+        This function calculate the point to line distance
+        x1,y1 = current robot position
+
+        d = |A(x1)+B(y1)+C|/sqrt(A²+B²)
+        '''
+        #TODO implement formula return d
+        pass
 
     def laser_cb(self, msg):   
         ## This function receives a message of type LaserScan   
@@ -305,6 +352,8 @@ class GoToGoal():
         self.x_target = goal.pose.position.x 
         self.y_target = goal.pose.position.y 
         self.goal_received=1 
+
+
 
          
 
