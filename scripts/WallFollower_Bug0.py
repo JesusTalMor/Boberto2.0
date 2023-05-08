@@ -363,4 +363,3 @@ class GoToGoal():
 if __name__ == "__main__":
     rospy.init_node("bug_0", anonymous=True)  
     GoToGoal()  
-    
