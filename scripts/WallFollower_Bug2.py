@@ -47,7 +47,7 @@ class GoToGoal():
         self.target_position_tolerance=0.20 #target position tolerance [m] 
 
         fw_distance = 0.45 # distance to activate the following walls behavior [m] 
-        progress = 0.3 #If the robot is this close to the goal with respect to when it started following walls it will stop following walls 
+        tolerance = 0.3 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
         v_msg=Twist() #Robot's desired speed  
 
         self.wr=0 #right wheel speed [rad/s] 
@@ -56,7 +56,6 @@ class GoToGoal():
         self.current_state = 'GoToGoal' #Robot's current state 
 
         #? ######## Point to Line variables#######
-        #TODO Agregar variables para definir la recta de manera general DONE
         A = 0.0
         B = 0.0
         C = 0.0
@@ -86,16 +85,14 @@ class GoToGoal():
             self.robot.update_state(self.wr, self.wl, Dt) #update the robot's state 
             if self.lidar_received: 
                 if self.calculate_line is True:
-                    # TODO Fill parameters
-                    A,B,C = self.get_eq_values()
+                    A,B,C = self.get_eq_values(self.robot.x,self.robot.y,self.x_target,self.y_target)
                     pass
 
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
                 thetaAO = self.get_theta_ao(closest_angle) 
                 thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
                 d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) # Current distance from the robot's position to the goal
-                #TODO Calcular la distancia de un punto a una recta
-                d_p2line = self.distance2line()
+                d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal():  
                     print("Goal reached") 
@@ -116,8 +113,7 @@ class GoToGoal():
                             print("Going Clockwise")   
                         else:
                             self.current_state = "CounterClockwise" 
-                            print("Going CounterClockwise")
-                        D_Fw = d_t # YOU HAVE TO SAVE THE DISTANCE TO THE GOAL 
+                            print("Going CounterClockwise") 
 
                     else: # if we didn't detect an object
                         print("Moving to the Goal") 
@@ -127,8 +123,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'Clockwise': 
-                    #TODO cambiar al if por la condicion de que la distancia del robot a la recta sea menor a un valor de tolerancia
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
+                    if d_p2line < tolerance: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
@@ -140,8 +135,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'CounterClockwise':
-                    #TODO cambiar al if por la condicion de que la distancia del robot a la recta sea menor a un valor de tolerancia
-                    if d_t < (D_Fw-0.5) and (thetaAO-thetaGTG) < np.pi/2.0: #Clear Shot
+                    if d_p2line < tolerance: #Clear Shot
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
                     else:
@@ -294,12 +288,8 @@ class GoToGoal():
     def get_eq_values(self,x1,y1,x2,y2): 
         '''
         This function calculate A,B,C that we gonna use to point to line function
-        '''
-        '''
         x1,y1 corresponds to x and y robot
         x2,y2 corresponds to x and y goal
-        '''
-        '''
         y-y1 = m(x-x1)
         0 = m*x-m*x1 + y1 - y
 
@@ -309,21 +299,16 @@ class GoToGoal():
 
         0 = Ax + By + C
         '''
-        #TODO Calculate m (pendiente) m = y2-y1/x2-x1
-        #TODO Calcular A,B,C 
-        #TODO Cambiar bandera
-        #TODO return A,B,C
-        pass
+        A = (y2 - y1) / (x2 - x1)
+        B = -1
+        C = -A * x1 + y1
+        self.calculate_line = False
+        return A, B, C
+        
 
     def distance2line(self,A,B,C,x1,y1):
-        '''
-        This function calculate the point to line distance
-        x1,y1 = current robot position
-
-        d = |A(x1)+B(y1)+C|/sqrt(A²+B²)
-        '''
-        #TODO implement formula return d
-        pass
+        d = abs((A*x1)+(B*y1)+C)/np.sqrt((A**2)+(B**2))
+        return d
 
     def laser_cb(self, msg):   
         ## This function receives a message of type LaserScan   
