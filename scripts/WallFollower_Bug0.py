@@ -11,7 +11,7 @@ class Robot():
 
     ...
 
-    Attributes
+    Atributes
     ----------
     ROBOT CONSTANTS
 
@@ -45,11 +45,19 @@ class Robot():
         self.y = 0.0 #y position of the robot [m] 
         self.theta = 0.0 #angle of the robot [rad] 
 
-    def update_state(self, wr, wl, delta_t): 
+    def update_state(self, wr:float, wl:float, delta_t:float) -> None: 
         '''
         UPDATE the robot's state 
-        #This functions receives the wheel speeds wr and wl in [rad/sec]  
-        # and returns the robot's state
+        This functions receives the wheel speeds wr and wl in [rad/sec]  
+        and updates the robot's state
+        
+        Parameters
+        ----------
+            wr (float) Right Wheel angula speed [rad/s]
+            
+            wl (float) Left Wheel angula speed [rad/s]
+            
+            delta_t (float) Sampling time [s]
         '''
         v=self.r*(wr+wl)/2 
         w=self.r*(wr-wl)/self.L 
@@ -350,7 +358,6 @@ class GoToGoal():
         vel_msg = Twist() 
         self.pub_cmd_vel.publish(vel_msg) 
 
- 
 
 ############################### MAIN PROGRAM ####################################  
 if __name__ == "__main__":
