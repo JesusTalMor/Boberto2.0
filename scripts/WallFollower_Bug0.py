@@ -142,7 +142,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'Clockwise': 
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) <= np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
+                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
@@ -154,7 +154,7 @@ class GoToGoal():
 
 
                 elif self.current_state == 'CounterClockwise':
-                    if d_t < (D_Fw- progress) and abs(thetaAO-thetaGTG) > np.pi/2.0: #Clear Shot
+                    if d_t < (D_Fw- progress) and abs(thetaAO-thetaGTG) < np.pi/2.0: #Clear Shot
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
                     else:
