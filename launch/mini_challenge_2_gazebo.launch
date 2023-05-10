@@ -15,5 +15,14 @@
     <node pkg='puzzlebot_sim' type='puzzlebot_gazebo_position_marker.py' name='gazebo_pos_marker'/>
 
   <!-- * Lanzar nodo de control basico con texto - para hacer que se mueva-->
+<<<<<<< HEAD:launch/mini_challenge_2_gazebo.launch
     <node pkg='puzzlebot_sim' type='main_robot_control.py' name='main_robot_control' output='screen'/>
+=======
+  <!--*  <node pkg='puzzlebot_sim' type='main_robot_control.py' name='main_robot_control' output='screen'/> -->
+
+
+  <!-- * Iniciando mundo de gazebo y puzzlebot -->
+    <include file="$(find puzzlebot_sim)/launch/puzzlebot_gazebo_modified.launch" />
+
+>>>>>>> fe72946ab3350dffc84f785309f04233ffdd3479:launch/beta_mini_challenge_2.launch
 </launch>
