@@ -45,7 +45,7 @@ class Robot():
         self.y = 0.0 #y position of the robot [m] 
         self.theta = 0.0 #angle of the robot [rad] 
 
-    def update_state(self, wr:float, wl:float, delta_t:float) -> None: 
+    def update_state(self, wr, wl, delta_t): 
         '''
         UPDATE the robot's state 
         This functions receives the wheel speeds wr and wl in [rad/sec]  
@@ -83,9 +83,9 @@ class GoToGoal():
         self.y_target= 0.0 #y position of the goal 
         self.goal_received=0 #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
-        self.target_position_tolerance=0.20 #target position tolerance [m] 
+        self.target_position_tolerance=0.2 #target position tolerance [m] 
 
-        fw_distance = 0.30 # distance to activate the following walls behavior [m] 
+        fw_distance = 0.35 # distance to activate the following walls behavior [m] 
         progress = 0.3 #If the robot is this close to the goal with respect to when it started following walls it will stop following walls 
         v_msg=Twist() #Robot's desired speed  
 
@@ -121,7 +121,7 @@ class GoToGoal():
                 thetaAO = self.get_theta_ao(closest_angle) 
                 thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
                 d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) # Current distance from the robot's position to the goal
-
+                print(closest_range)
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal():  
                     print("Goal reached") 
@@ -276,19 +276,14 @@ class GoToGoal():
     def compute_fw_control(self, thetaFW,closest_range, closest_angle): 
         ## This function computes the linear and angular speeds for the robot 
         # It receives thetaFW [rad]    
-        #Compute linear and angular speeds 
-        kw = 1.2 #angular vel gain
+        #Compute linear and angular speeds gain
+        kw = 1.2
         if abs(thetaFW) > np.pi/5.0:
             v = 0.0
             w = kw *thetaFW
-        elif closest_range > 0.4:
-            kw = 0.5
-            w = kw*(thetaFW + closest_angle/2.0)
-            v = 0.1 #lineal vel is constant [m/s]
         else:
+            v = 0.1
             w = kw *thetaFW
-            v = 0.2
-
         return v, w
 
 
@@ -345,10 +340,4 @@ class GoToGoal():
 ############################### MAIN PROGRAM ####################################  
 if __name__ == "__main__":
     rospy.init_node("bug_0", anonymous=True)  
-<<<<<<< HEAD
     GoToGoal()  
-=======
-    try: GoToGoal()  
-    except rospy.ROSInterruptException:
-        rospy.logwarn("EXECUTION COMPLETED SUCCESFULLY")
->>>>>>> marcos
