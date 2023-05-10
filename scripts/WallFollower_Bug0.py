@@ -72,7 +72,10 @@ class Robot():
 
 
 #This class will make the puzzlebot move to a given goal 
-class GoToGoal():  
+class GoToGoal():
+    '''
+    This class will make the puzzlebot move to a given goal
+    '''
     def __init__(self):  
         rospy.on_shutdown(self.cleanup) 
 
@@ -158,7 +161,7 @@ class GoToGoal():
 
                     else: 
                         thetaFWC=self.get_theta_fw(thetaAO, True) #If it True is passed return clockwise, else counterclockwise 
-                        vFWC, wFWC = self.compute_fw_control(thetaFWC,closest_range,closest_angle) 
+                        vFWC, wFWC = self.compute_fw_control(thetaFWC) 
                         v_msg.linear.x = vFWC 
                         v_msg.angular.z = wFWC 
 
@@ -169,7 +172,7 @@ class GoToGoal():
                         print("Change to Go to goal")
                     else:
                         thetaFWC = self.get_theta_fw(thetaAO, False)
-                        vFWCC, wFWCC = self.compute_fw_control(thetaFWC,closest_range,closest_angle)
+                        vFWCC, wFWCC = self.compute_fw_control(thetaFWC)
                         print ('counterclock')
                         v_msg.linear.x = vFWCC 
                         v_msg.angular.z = wFWCC
@@ -185,26 +188,67 @@ class GoToGoal():
             rate.sleep()  
 
     def at_goal(self):  # condicion para terminar el proceso
-        #This function returns true if the robot is close enough to the goal 
-        #This functions receives the goal's position and returns a boolean 
-        #This functions returns a boolean 
+        '''
+        This function returns true if the robot is close enough to the goal 
+        
+        Parameters
+        ----------
+        This functions receives the goal's position and current robot position
+        
+        Return
+        ------
+        Bool
+        '''
         return np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2)<self.target_position_tolerance 
 
 
-    def get_closest_object(self, lidar_msg): 
-        #This function returns the closest object to the robot 
-        #This functions receives a ROS LaserScan message and returns the distance and direction to the closest object 
-        #returns  closest_range [m], closest_angle [rad], 
+    def get_closest_object(self, lidar_msg):
+        '''
+        Calculate the closest object to the robot
+
+        Parameters
+        ---------
+        lidar_msg: ROS LaserScan message
+
+        
+        Return
+        ------
+        closest_range: float
+            distance to the closest object [m]
+        closest_angle: float
+            distance to the closest_angle  [rad]
+        '''
         min_idx = np.argmin(lidar_msg.ranges) 
         closest_range = lidar_msg.ranges[min_idx] 
         closest_angle = lidar_msg.angle_min + min_idx * lidar_msg.angle_increment 
-        # limit the angle to [-pi, pi] 
+        # Crop the angle to [-pi, pi] 
         closest_angle = np.arctan2(np.sin(closest_angle), np.cos(closest_angle)) 
         return closest_range, closest_angle 
 
 
     def get_theta_gtg(self, x_target, y_target, x_robot, y_robot, theta_robot): 
-        #This function returns the angle to the goal 
+        '''
+        Calculate the angle to the goal
+
+        Parameters
+        ---------
+        x_target:    float
+            "x" coordinate of the goal
+        y_target:    float
+            "y" coordinate of the goal
+        x_robot:     float
+            "x" coordinate of robot's current position
+        y_robot:     float
+            "y" coordinate of robot's current position
+        theta_robot: float
+            Robot's current angle
+
+        Return
+        ------
+        e_theta: float
+            Update the angle value between the robot and the goal
+        
+        ''' 
         theta_target=np.arctan2(y_target-y_robot,x_target-x_robot) 
         e_theta=theta_target-theta_robot 
         #limit e_theta from -pi to pi 
@@ -213,11 +257,30 @@ class GoToGoal():
         return e_theta 
 
 
-    def compute_gtg_control(self, x_target, y_target, x_robot, y_robot, theta_robot): 
-        #This function returns the linear and angular speed to reach a given goal 
-        #This functions receives the goal's position (x_target, y_target) [m] 
-        #  and robot's position (x_robot, y_robot, theta_robot) [m, rad] 
-        #This functions returns the robot's speed (v, w) [m/s] and [rad/s] 
+    def compute_gtg_control(self, x_target, y_target, x_robot, y_robot, theta_robot):
+        '''
+        Calculate the linear and angular speed to reach a given goal
+
+        Parameters
+        ----------
+        x_target: float
+            Goal's position (x-component)  [m]
+        y_target: float
+            Goal's position (y-component)  [m]
+        x_robot: float
+            Robot's position (x-component) [m]
+        y_robot: float
+            Robot's position (y-component) [m]
+        theta_robot: float
+            Robot's position (angle component) [rad]
+        
+        Return
+        ------
+        v: float
+            linear speed robot [m/s]
+        w: float
+            angular speed robot [rad/s]
+        '''
         kvmax = 0.25 #linear speed maximum gain  
         kwmax=0.8 #angular angular speed maximum gain 
         #kw=0.5 
@@ -245,24 +308,43 @@ class GoToGoal():
         return v,w 
 
 
-    def get_theta_ao(self, theta_closest): 
-        ##This function returns the angle for the Avoid obstacle behavior  
-        # theta_closest is the angle to the closest object [rad] 
-        #This functions returns the angle for the Avoid obstacle behavior [rad] 
-        ############################################################ 
+    def get_theta_ao(self, theta_closest):
+        '''
+        Calculate the angle for the Avoid obstacle behavior  
+
+        Parameters
+        ----------
+        theta_closest: float
+            Angle to the closest object [rad]
+        
+        Return
+        ------
+        thetaAO: float
+            Angle for the Avoid Obstacle behavior [rad] 
+        '''
         thetaAO=theta_closest-np.pi 
         #limit the angle to [-pi,pi] 
         thetaAO = np.arctan2(np.sin(thetaAO),np.cos(thetaAO)) 
-
         return thetaAO 
 
 
 
-    def get_theta_fw(self, thetaAO, clockwise): 
-        ## This function computes the linear and angular speeds for the robot 
-        # It receives thetaAO [rad] and clockwise [bool] 
-        # Clockwise true 
-        # CounterClockwise False
+    def get_theta_fw(self, thetaAO, clockwise):
+        '''
+        Computes the angle for Following Walls behavior
+
+        Parameters
+        ----------
+        thetaA0: float
+        clockwise: bool
+            True = Clockwise
+            False = CounterClockwise
+
+        Return
+        ------
+        theta_fw: float
+            angle for following walls
+        '''
         if clockwise is True:
             theta_fw = thetaAO - np.pi/2.0
         else:
@@ -273,10 +355,23 @@ class GoToGoal():
         return theta_fw
 
 
-    def compute_fw_control(self, thetaFW,closest_range, closest_angle): 
-        ## This function computes the linear and angular speeds for the robot 
-        # It receives thetaFW [rad]    
-        #Compute linear and angular speeds gain
+    def compute_fw_control(self, thetaFW): 
+        '''
+        Computes the linear and angular speeds for the robot
+        in follwing wall behavior 
+
+        Parameters
+        ----------
+        thetaFW: float
+            Following theta angle [rad]   
+
+        Return
+        ------
+        v: float
+            linear speed robot [m/s]
+        w: float
+            angular speed robot [rad/s]
+        '''
         kw = 1.2
         if abs(thetaFW) > np.pi/5.0:
             v = 0.0
@@ -286,41 +381,24 @@ class GoToGoal():
             w = kw *thetaFW
         return v, w
 
-
-    def get_angle(self, idx, angle_min, angle_increment):  
-        ## This function returns the angle for a given element of the object in the lidar's frame  
-        angle= angle_min + idx * angle_increment  
-        # Limit the angle to [-pi,pi]  
-        angle = np.arctan2(np.sin(angle),np.cos(angle))  
-        return angle  
-
-
-    def polar_to_cartesian(self,r,theta):  
-        ## This function converts polar coordinates to cartesian coordinates  
-        x = r*np.cos(theta)  
-        y = r*np.sin(theta)  
-
-        return (x,y)  
-
-
     def laser_cb(self, msg):   
-        ## This function receives a message of type LaserScan   
+        '''Receives a message of type LaserScan'''
         self.lidar_msg = msg  
         self.lidar_received = True  
 
 
     def wl_cb(self, wl):  
-        ## This function receives a the left wheel speed [rad/s] 
+        '''Receives a the left wheel speed [rad/s]'''
         self.wl = wl.data 
 
 
     def wr_cb(self, wr):  
-        ## This function receives a the right wheel speed.  
+        '''Receives a the right wheel speed [rad/s]''' 
         self.wr = wr.data  
 
 
     def goal_cb(self, goal):  
-        ## This function receives a the goal from rviz.  
+        '''Receives a the goal from rviz'''  
         print("Goal received I'm moving to x= "+str(goal.pose.position.x)+" y= "+str(goal.pose.position.y)) 
         self.current_state = "GoToGoal" 
         # assign the goal position 
@@ -329,10 +407,12 @@ class GoToGoal():
         self.goal_received=1 
 
 
-    def cleanup(self):  
-        #This function is called just before finishing the node  
-        # You can use it to clean things up before leaving  
-        # Example: stop the robot before finishing a node.    
+    def cleanup(self): 
+        '''
+        This function is called just before finishing the node  
+        You can use it to clean things up before leaving  
+        Example: stop the robot before finishing a node.
+        '''
         vel_msg = Twist() 
         self.pub_cmd_vel.publish(vel_msg) 
 
@@ -340,4 +420,6 @@ class GoToGoal():
 ############################### MAIN PROGRAM ####################################  
 if __name__ == "__main__":
     rospy.init_node("bug_0", anonymous=True)  
-    GoToGoal()  
+    try: GoToGoal()  
+    except rospy.ROSInterruptException:
+        rospy.logwarn("EXECUTION COMPLETED SUCCESFULLY")
