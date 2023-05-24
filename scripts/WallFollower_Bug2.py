@@ -40,8 +40,8 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= -0.5 #x position of the goal 
-        self.y_target= 6.0 #y position of the goal 
+        self.x_target= -3.0 #x position of the goal 
+        self.y_target= 3.0 #y position of the goal 
         self.goal_received=1 #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         self.target_position_tolerance=0.20 #target position tolerance [m] 
@@ -62,8 +62,7 @@ class GoToGoal():
         C = 0.0
         d_p2line = 0.0 # distance point to line
         self.calculate_line = True
-
-        rospy.on_shutdown(self.cleanup)  
+  
 
         #?#******* INIT PUBLISHERS *******###  
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
