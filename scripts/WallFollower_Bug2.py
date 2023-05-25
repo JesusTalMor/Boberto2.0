@@ -9,7 +9,7 @@ class Robot():
     #This class implements the differential drive model of the robot 
     def __init__(self): 
         ############ ROBOT CONSTANTS ################  
-        self.r=0.05 #wheel radius [m] 
+        self.r = 0.05 #wheel radius [m] 
         self.L = 0.18 #wheel separation [m] 
         ############ Variables ############### 
         self.x = 0.0 #x position of the robot [m] 
@@ -20,13 +20,13 @@ class Robot():
         #This function returns the robot's state 
         #This functions receives the wheel speeds wr and wl in [rad/sec]  
         # and returns the robot's state 
-        v=self.r*(wr+wl)/2 
-        w=self.r*(wr-wl)/self.L 
-        self.theta=self.theta + w*delta_t 
+        v = self.r * (wr+wl)/2 
+        w = self.r * (wr-wl)/self.L 
+        self.theta = self.theta + w * delta_t 
         #Crop theta_r from -pi to pi 
-        self.theta=np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
-        vx=v*np.cos(self.theta) 
-        vy=v*np.sin(self.theta) 
+        self.theta = np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
+        vx = v * np.cos(self.theta) 
+        vy = v * np.sin(self.theta) 
 
         self.x=self.x+vx*delta_t  
         self.y=self.y+vy*delta_t 
@@ -40,19 +40,19 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= -3.0 #x position of the goal 
-        self.y_target= 3.0 #y position of the goal 
-        self.goal_received=1 #flag to indicate if the goal has been received 
+        self.x_target= 1.0 #x position of the goal 
+        self.y_target= 1.0 #y position of the goal 
+        self.goal_received = True   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
-        self.target_position_tolerance=0.20 #target position tolerance [m] 
+        target_position_tolerance = 0.10 #target position tolerance [m] 
 
-        fw_distance = 0.30 # distance to activate the following walls behavior [m] 
-        tolerance = 0.1 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
-        progress = 0.3
+        fw_distance = 0.20 # distance to activate the following walls behavior [m] 
+        tolerance = 0.05 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
+        progress = 0.2
         v_msg=Twist() #Robot's desired speed  
 
-        self.wr=0 #right wheel speed [rad/s] 
-        self.wl=0 #left wheel speed [rad/s] 
+        self.wr = 0.0 #right wheel speed [rad/s] 
+        self.wl = 0.0 #left wheel speed [rad/s] 
 
         self.current_state = 'GoToGoal' #Robot's current state 
 
@@ -73,9 +73,9 @@ class GoToGoal():
         rospy.Subscriber("base_scan", LaserScan, self.laser_cb) 
 
         #?#********** INIT NODE **********###  
-        freq=10
+        freq = 10
         rate = rospy.Rate(freq) #freq Hz  
-        Dt =1.0/float(freq) #Dt is the time between one calculation and the next one 
+        Dt = 1.0/float(freq) #Dt is the time between one calculation and the next one 
         print("Node initialized") 
         print("Please send a Goal from rviz using the button: 2D Nav Goal") 
         print("You can also publish the goal to the (move_base_simple/goal) topic.") 
@@ -83,23 +83,27 @@ class GoToGoal():
         #?############### MAIN LOOP ################  
         while not rospy.is_shutdown():  
             self.robot.update_state(self.wr, self.wl, Dt) #update the robot's state 
-            if self.lidar_received: 
+            if self.lidar_received:
+                # Calcular una nueva recta ? 
                 if self.calculate_line is True:
                     A,B,C = self.get_eq_values(self.robot.x,self.robot.y,self.x_target,self.y_target)
 
+                # Rango mas cercano al robot, angulo y distancia
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
-                print (closest_range)
-                thetaAO = self.get_theta_ao(closest_angle) 
+                # Calcula el angulo para evitar obstaculo
+                thetaAO = self.get_theta_ao(closest_angle)
+                # Calcula el angulo para rodear obstaculo 
                 thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
-                d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) # Current distance from the robot's position to the goal
+                # Distancia del robot al Goal
+                d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) 
+                # Distancia a la recta, generada
                 d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
-                #print (d_p2line)
+
                 # IF THE ROBOT IS AT GOAL....
-                if self.at_goal():  
+                if self.at_goal(d_t, target_position_tolerance):  
                     print("Goal reached") 
                     self.current_state = 'Stop' 
                     self.calculate_line = True
-                    #print("Stop") 
                     v_msg.linear.x = 0 
                     v_msg.angular.z = 0 
 
@@ -124,7 +128,8 @@ class GoToGoal():
                         v_msg.angular.z = w_gtg 
 
                 elif self.current_state == 'Clockwise': 
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0 and d_p2line < tolerance: #ADD output condition#: CONDICION PARA QUE SALGA DEL COMPORTAMIENTO DE FOLLOWING WALLS
+                    # Revisar si tenemos un Clear Shot
+                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0 and d_p2line < tolerance: 
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
@@ -169,11 +174,11 @@ class GoToGoal():
         return v,w
 
 
-    def at_goal(self):  # condicion para terminar el proceso
+    def at_goal(self, distancia, tolerancia):  # condicion para terminar el proceso
         #This function returns true if the robot is close enough to the goal 
         #This functions receives the goal's position and returns a boolean 
         #This functions returns a boolean 
-        return np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2)<self.target_position_tolerance 
+        return distancia < tolerancia
 
 
     def get_closest_object(self, lidar_msg): 
@@ -262,7 +267,7 @@ class GoToGoal():
         kw = 1.2
         if abs(thetaFW) > np.pi/5:
             v = 0.0
-            w = kw *thetaFW
+            w = kw * thetaFW
         elif closest_range > 0.4:
             kw = 0.5
             w = kw*(thetaFW + closest_angle/2.0)
