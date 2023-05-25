@@ -37,8 +37,8 @@ class GoToGoal:
 
         self.robot = Robot()
 
-        self.x_target= -3.0 #x position of the goal 
-        self.y_target= 3.0 #y position of the goal
+        self.x_target= 3.0 #x position of the goal 
+        self.y_target= 0.0 #y position of the goal
         self.target_position_tolerance=0.20 #target position tolerance [m] 
 
         v_msg=Twist() #Robot's desired speed  
@@ -56,7 +56,7 @@ class GoToGoal:
         Dt =1.0/float(freq) #Dt is the time between one calculation and the next one 
 
         while not rospy.is_shutdown():
-            self.robot.update_state(self.self.wl, Dt)
+            self.robot.update_state(self.wr, self.wl, Dt)
 
             if self.at_goal():  
                     print("Goal reached")
@@ -95,6 +95,19 @@ class GoToGoal:
         #limit e_theta from -pi to pi 
         #This part is very important to avoid abrupt changes when error switches between 0 and +-2pi 
         e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
+
+        #Compute the robot's angular speed 
+        kw=kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) #Constant to change the speed  
+        w=kw*e_theta 
+        if abs(e_theta) > np.pi/8: 
+            #we first turn to the goal 
+            v=0 #linear speed  
+        else: 
+            # Make the linear speed gain proportional to the distance to the target position 
+            kv=kvmax*(1-np.exp(-av*ed**2))/abs(ed) #Constant to change the speed  
+            v=kv*ed #linear speed  
+        return v,w 
+
     
     def wl_cb(self, wl):  
         ## This function receives a the left wheel speed [rad/s] 
