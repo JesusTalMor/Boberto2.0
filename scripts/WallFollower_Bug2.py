@@ -39,14 +39,14 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= 1.3 #x position of the goal 
-        self.y_target= 0.65 #y position of the goal 
+        self.x_target= 0.40 #x position of the goal 
+        self.y_target= 4.0 #y position of the goal 
         self.goal_received = True   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
-        target_position_tolerance = 0.10 #target position tolerance [m] 
+        target_position_tolerance = 0.14 #target position tolerance [m] 
 
         fw_distance = 0.25 # distance to activate the following walls behavior [m] 
-        tolerance = 0.05 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
+        tolerance = 1000.0 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
         progress = 0.2
         v_msg=Twist() #Robot's desired speed  
 
@@ -98,6 +98,8 @@ class GoToGoal():
                 # Distancia a la recta, generada
                 d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
 
+                print("closest range",closest_angle)
+
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal(d_t, target_position_tolerance):  
                     print("Goal reached") 
@@ -135,6 +137,7 @@ class GoToGoal():
                     else: 
                         thetaFWC=self.get_theta_fw(thetaAO, True) #If it True is passed return clockwise, else counterclockwise 
                         vFWC, wFWC = self.compute_fw_control(thetaFWC,closest_range,closest_angle) 
+                        print("Clockwise")
                         v_msg.linear.x = vFWC 
                         v_msg.angular.z = wFWC
 
