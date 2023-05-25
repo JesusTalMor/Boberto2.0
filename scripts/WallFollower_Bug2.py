@@ -39,13 +39,13 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= 1.0 #x position of the goal 
-        self.y_target= 0.5 #y position of the goal 
+        self.x_target= 1.3 #x position of the goal 
+        self.y_target= 0.65 #y position of the goal 
         self.goal_received = True   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         target_position_tolerance = 0.10 #target position tolerance [m] 
 
-        fw_distance = 0.20 # distance to activate the following walls behavior [m] 
+        fw_distance = 0.25 # distance to activate the following walls behavior [m] 
         tolerance = 0.05 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
         progress = 0.2
         v_msg=Twist() #Robot's desired speed  
@@ -72,7 +72,7 @@ class GoToGoal():
         rospy.Subscriber("base_scan", LaserScan, self.laser_cb) 
 
         #?#********** INIT NODE **********###  
-        freq = 10
+        freq = 50
         rate = rospy.Rate(freq) #freq Hz  
         Dt = 1.0/float(freq) #Dt is the time between one calculation and the next one 
         print("Node initialized") 
@@ -271,7 +271,7 @@ class GoToGoal():
         # It receives thetaFW [rad]    
         #Compute linear and angular speeds 
         kw = 1.2
-        if abs(thetaFW) > np.pi/5:
+        if abs(thetaFW) > np.pi/10:
             v = 0.0
             w = kw * thetaFW
         elif closest_range > 0.3:
@@ -280,7 +280,7 @@ class GoToGoal():
             v = 0.1 #lineal vel is constant [m/s]
         else:
             w = kw *thetaFW
-            v = 0.15 #lineal vel is constant [m/s]
+            v = 0.1 #lineal vel is constant [m/s]
 
         return v, w
 
