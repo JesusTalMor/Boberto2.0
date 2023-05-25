@@ -3,7 +3,7 @@ import rospy
 
 class TemplateClass():  
   '''
-    Brief Description of The program and the class
+    Tonteria de Template
   '''
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
