@@ -9,7 +9,7 @@ class Robot():
     #This class implements the differential drive model of the robot 
     def __init__(self): 
         ############ ROBOT CONSTANTS ################  
-        self.r=0.05 #wheel radius [m] 
+        self.r = 0.05 #wheel radius [m] 
         self.L = 0.18 #wheel separation [m] 
         ############ Variables ############### 
         self.x = 0.0 #x position of the robot [m] 
@@ -20,8 +20,8 @@ class Robot():
         #This function returns the robot's state 
         #This functions receives the wheel speeds wr and wl in [rad/sec]  
         # and returns the robot's state 
-        v=self.r*(wr+wl)/2 
-        w=self.r*(wr-wl)/self.L 
+        v = self.r*(wr+wl)/2.0 
+        w = self.r*(wr-wl)/self.L 
         self.theta=self.theta + w*delta_t 
         #Crop theta_r from -pi to pi 
         self.theta=np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
@@ -43,25 +43,25 @@ class GoToGoal:
 
         v_msg=Twist() #Robot's desired speed  
 
-        self.wr=0 #right wheel speed [rad/s] 
-        self.wl=0 #left wheel speed [rad/s] 
+        self.wr = 0.0 #right wheel speed [rad/s] 
+        self.wl = 0.0 #left wheel speed [rad/s] 
 
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
 
         rospy.Subscriber("wl", Float32, self.wl_cb)  
         rospy.Subscriber("wr", Float32, self.wr_cb) 
 
-        freq=10
+        freq = 10
         rate = rospy.Rate(freq) #freq Hz  
-        Dt =1.0/float(freq) #Dt is the time between one calculation and the next one 
+        Dt = 1.0/float(freq) #Dt is the time between one calculation and the next one 
 
         while not rospy.is_shutdown():
             self.robot.update_state(self.wr, self.wl, Dt)
 
             if self.at_goal():  
                     print("Goal reached")
-                    v_msg.linear.x = 0 
-                    v_msg.angular.z = 0 
+                    v_msg.linear.x = 0.0 
+                    v_msg.angular.z = 0.0
             else:
                 print("Moving to the Goal") 
                 v_gtg, w_gtg = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
