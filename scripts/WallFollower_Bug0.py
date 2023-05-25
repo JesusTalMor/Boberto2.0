@@ -83,7 +83,7 @@ class GoToGoal():
 
         ############ Variables ############### 
         self.x_target= 0.0 #x position of the goal 
-        self.y_target= 0.0 #y position of the goal 
+        self.y_target= 4.0 #y position of the goal 
         self.goal_received=0 #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         self.target_position_tolerance=0.2 #target position tolerance [m] 
