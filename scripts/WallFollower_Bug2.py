@@ -274,13 +274,13 @@ class GoToGoal():
         if abs(thetaFW) > np.pi/5:
             v = 0.0
             w = kw * thetaFW
-        elif closest_range > 0.4:
+        elif closest_range > 0.3:
             kw = 0.5
             w = kw*(thetaFW + closest_angle/2.0)
             v = 0.1 #lineal vel is constant [m/s]
         else:
             w = kw *thetaFW
-            v = 0.2 #lineal vel is constant [m/s]
+            v = 0.15 #lineal vel is constant [m/s]
 
         return v, w
 
