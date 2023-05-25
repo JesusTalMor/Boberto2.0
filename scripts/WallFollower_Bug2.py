@@ -40,8 +40,8 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= -0.5 #x position of the goal 
-        self.y_target= 6.0 #y position of the goal 
+        self.x_target= -3.0 #x position of the goal 
+        self.y_target= 3.0 #y position of the goal 
         self.goal_received=1 #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         self.target_position_tolerance=0.20 #target position tolerance [m] 
@@ -62,8 +62,7 @@ class GoToGoal():
         C = 0.0
         d_p2line = 0.0 # distance point to line
         self.calculate_line = True
-
-        rospy.on_shutdown(self.cleanup)  
+  
 
         #?#******* INIT PUBLISHERS *******###  
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
@@ -152,9 +151,22 @@ class GoToGoal():
                     v_msg.linear.x = 0 
                     v_msg.angular.z = 0 
 
+
+            # Funcion para limitar las velocidades lineal y angular
+            v_msg.linear.x, v_msg.angular.z = self.limit_vel(v_msg.linear.x,v_msg.angular.z)
+
+            
             # PUBLISH VELOCITY
             self.pub_cmd_vel.publish(v_msg)  
             rate.sleep()  
+
+    def limit_vel(self, v , w):
+        if w > 0.4:
+            w = 0.4
+        
+        if v > 0.4:
+            v = 0.4
+        return v,w
 
 
     def at_goal(self):  # condicion para terminar el proceso
@@ -204,7 +216,7 @@ class GoToGoal():
         e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
 
         #Compute the robot's angular speed 
-        kw=kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) #Constant to change the speed  
+        kw= kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) if e_theta != 0.0 else 0.0 #Constant to change the speed  
         w=kw*e_theta 
         if abs(e_theta) > np.pi/8: 
             #we first turn to the goal 
