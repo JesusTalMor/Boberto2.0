@@ -203,7 +203,7 @@ class GoToGoal():
         e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
 
         #Compute the robot's angular speed 
-        kw=kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) #Constant to change the speed  
+        kw= kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) if e_theta != 0.0 else 0.0 #Constant to change the speed  
         w=kw*e_theta 
         if abs(e_theta) > np.pi/8: 
             #we first turn to the goal 

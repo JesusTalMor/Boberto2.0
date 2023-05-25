@@ -20,16 +20,16 @@ class Robot():
         #This function returns the robot's state 
         #This functions receives the wheel speeds wr and wl in [rad/sec]  
         # and returns the robot's state 
-        v = self.r*(wr+wl)/2.0 
-        w = self.r*(wr-wl)/self.L 
-        self.theta=self.theta + w*delta_t 
+        v = self.r * (wr+wl)/2.0 
+        w = self.r * (wr-wl)/self.L 
+        self.theta = self.theta + w * delta_t 
         #Crop theta_r from -pi to pi 
-        self.theta=np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
+        self.theta= np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
         vx=v*np.cos(self.theta) 
         vy=v*np.sin(self.theta) 
 
-        self.x=self.x+vx*delta_t  
-        self.y=self.y+vy*delta_t
+        self.x= self.x + vx * delta_t  
+        self.y= self.y + vy * delta_t
 
 class GoToGoal:
     def __init__(self):
@@ -45,8 +45,10 @@ class GoToGoal:
 
         self.wr = 0.0 #right wheel speed [rad/s] 
         self.wl = 0.0 #left wheel speed [rad/s] 
+        self.received_wr = False
+        self.received_wl = False
 
-        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
+        self.pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)  
 
         rospy.Subscriber("wl", Float32, self.wl_cb)  
         rospy.Subscriber("wr", Float32, self.wr_cb) 
@@ -56,8 +58,12 @@ class GoToGoal:
         Dt = 1.0/float(freq) #Dt is the time between one calculation and the next one 
 
         while not rospy.is_shutdown():
+            if self.received_wr is False or self.received_wl is False:
+                rate.sleep()
+                continue
+            
+            # * Actualizar posicion del robot
             self.robot.update_state(self.wr, self.wl, Dt)
-
             if self.at_goal():  
                     print("Goal reached")
                     v_msg.linear.x = 0.0 
