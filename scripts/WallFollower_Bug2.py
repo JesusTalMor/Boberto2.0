@@ -4,7 +4,6 @@ from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Float32 
 from sensor_msgs.msg import LaserScan   #Lidar 
 import numpy as np 
-
 class Robot(): 
     #This class implements the differential drive model of the robot 
     def __init__(self): 
@@ -166,11 +165,18 @@ class GoToGoal():
             rate.sleep()  
 
     def limit_vel(self, v , w):
-        if w > 0.4:
-            w = 0.4
-        
-        if v > 0.4:
-            v = 0.4
+        sign = 1 if w > 0 else -1
+        if abs(w) > 0.4:
+            w = sign * 0.4
+
+        sign = 1 if v > 0 else -1
+        if abs(v) > 0.4:
+            v = sign * 0.4
+
+        sign = 1 if v > 0 else -1
+        if abs(v) < 0.1 and v != 0.0:
+            v = sign * 0.1
+
         return v,w
 
 
