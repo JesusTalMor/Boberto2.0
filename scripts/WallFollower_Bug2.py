@@ -151,9 +151,22 @@ class GoToGoal():
                     v_msg.linear.x = 0 
                     v_msg.angular.z = 0 
 
+
+            # Funcion para limitar las velocidades lineal y angular
+            v_msg.linear.x, v_msg.angular.z = self.limit_vel(v_msg.linear.x,v_msg.angular.z)
+
+            
             # PUBLISH VELOCITY
             self.pub_cmd_vel.publish(v_msg)  
             rate.sleep()  
+
+    def limit_vel(self, v , w):
+        if w > 0.4:
+            w = 0.4
+        
+        if v > 0.4:
+            v = 0.4
+        return v,w
 
 
     def at_goal(self):  # condicion para terminar el proceso
