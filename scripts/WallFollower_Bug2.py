@@ -98,7 +98,7 @@ class GoToGoal():
                 # Distancia a la recta, generada
                 d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
 
-                print("closest range",closest_range)
+                print("Distancia Mas Cercana: ",closest_range)
 
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal(d_t, target_position_tolerance):  
@@ -110,9 +110,10 @@ class GoToGoal():
 
                 # IF THE ROBOT IS NOT AT GOAL
                 elif self.current_state == 'GoToGoal':                  
-                    if closest_range <= fw_distance: # if we detect an object 
+                    # * Detectamos un objeto muy cercano
+                    if closest_range <= fw_distance: 
                         # Implement the following walls behavior 
-                        print(" change to following walls") 
+                        print("Change to following walls") 
                         thetaFWC = self.get_theta_fw(thetaAO, True) # Theta clockwise
                         if abs(thetaFWC-thetaGTG) <= np.pi/2.0:
                             self.current_state = "Clockwise"   
@@ -130,26 +131,31 @@ class GoToGoal():
 
                 elif self.current_state == 'Clockwise': 
                     # Revisar si tenemos un Clear Shot
-                    print("Distancia de Progreso: ", round(d_t,2), round((D_Fw - progress),2), d_t < (D_Fw - progress))
-                    print("Angulo Clear Shot: ", round(abs(thetaAO-thetaGTG),2), abs(thetaAO-thetaGTG) < np.pi/2.0)
-                    print("Distancia a la recta: ", round(d_p2line,2), d_p2line < tolerance)
-                    if d_t < (D_Fw - progress) and d_p2line < tolerance: 
+                    print("Distancia de Progreso: ", round(d_t,2), round((D_Fw - progress),2))
+                    print("Angulo Clear Shot: ", round(abs(thetaAO-thetaGTG),2))
+                    print("Distancia a la recta: ", round(d_p2line),2)
+                    # * Calcular angulos
+                    theta_clear_shot = abs(self.limit_angle(thetaAO - thetaGTG))
+                    #   Ya avanzo una distancia ?   Tiene obstaculos a la vista ?   Esta cerca de la ruta ?
+                    if d_t < (D_Fw - progress) and theta_clear_shot < np.pi/2.0 and d_p2line < tolerance: 
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
                     else: 
-                        thetaFWC=self.get_theta_fw(thetaAO, True) #If it True is passed return clockwise, else counterclockwise 
+                        thetaFWC = self.get_theta_fw(thetaAO, True) #If it True is passed return clockwise, else counterclockwise 
                         vFWC, wFWC = self.compute_fw_control(thetaFWC,closest_range,closest_angle) 
                         print("Clockwise")
                         v_msg.linear.x = vFWC 
                         v_msg.angular.z = wFWC
 
-
                 elif self.current_state == 'CounterClockwise':
                     print("Distancia de Progreso: ", round(d_t,2), round((D_Fw - progress),2))
                     print("Angulo Clear Shot: ", round(abs(thetaAO-thetaGTG),2))
                     print("Distancia a la recta: ", round(d_p2line),2)
-                    if d_t < (D_Fw - progress) and d_p2line < tolerance: #Clear Shot
+                    # * Calcular angulos
+                    theta_clear_shot = abs(self.limit_angle(thetaAO - thetaGTG))
+                    #   Ya avanzo una distancia ?   Tiene obstaculos a la vista ?   Esta cerca de la ruta ?
+                    if d_t < (D_Fw - progress) and theta_clear_shot < np.pi/2.0 and d_p2line < tolerance: 
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
                     else:
@@ -173,6 +179,7 @@ class GoToGoal():
             self.pub_cmd_vel.publish(v_msg)  
             rate.sleep()  
 
+    #?#********** LIMITADORES #?#**********
     def limit_vel(self, v , w):
         sign = 1 if w > 0 else -1
         if abs(w) > 0.4:
@@ -188,14 +195,18 @@ class GoToGoal():
 
         return v,w
 
+    def limit_angle(self, angle):
+        """Funcion para limitar de -PI a PI cualquier angulo de entrada"""
+        return np.arctan2(np.sin(angle), np.cos(angle))
 
-    def at_goal(self, distancia, tolerancia):  # condicion para terminar el proceso
+    #?#********** CONDICIONALES #?#**********
+    def at_goal(self, distancia, tolerancia):
         #This function returns true if the robot is close enough to the goal 
         #This functions receives the goal's position and returns a boolean 
         #This functions returns a boolean 
         return distancia < tolerancia
 
-
+    #?#********** GETTERS #?#**********
     def get_closest_object(self, lidar_msg):
         """ This function returns the closest object to the robot
         This functions receives a ROS LaserScan message and returns the distance and direction to the closest object
@@ -208,16 +219,41 @@ class GoToGoal():
         closest_angle = self.limit_angle(closest_angle) 
         return closest_range, closest_angle 
 
-
     def get_theta_gtg(self, x_target, y_target, x_robot, y_robot, theta_robot): 
         #This function returns the angle to the goal 
-        theta_target=np.arctan2(y_target-y_robot,x_target-x_robot) 
-        e_theta=theta_target-theta_robot 
+        theta_target=np.arctan2(y_target - y_robot, x_target - x_robot) 
+        e_theta= theta_target - theta_robot 
         #limit e_theta from -pi to pi 
         #This part is very important to avoid abrupt changes when error switches between 0 and +-2pi 
-        e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
+        e_theta = self.limit_angle(e_theta)
         return e_theta 
 
+    def get_theta_ao(self, theta_closest): 
+        ##This function returns the angle for the Avoid obstacle behavior  
+        # theta_closest is the angle to the closest object [rad] 
+        #This functions returns the angle for the Avoid obstacle behavior [rad] 
+        ############################################################ 
+        thetaAO=theta_closest-np.pi 
+        #limit the angle to [-pi,pi] 
+        thetaAO = self.limit_angle(thetaAO)
+
+        return thetaAO
+    
+    def get_theta_fw(self, thetaAO, clockwise): 
+        ## This function computes the linear and angular speeds for the robot 
+        # It receives thetaAO [rad] and clockwise [bool] 
+        # Clockwise true 
+        # CounterClockwise False
+        if clockwise is True:
+            theta_fw = thetaAO - np.pi/2.0
+        else:
+            theta_fw = thetaAO + np.pi/2.0
+        
+        theta_fw = self.limit_angle(theta_fw)
+
+        return theta_fw
+    
+    #?#********** COMPORTAMIENTOS #?#**********
     def compute_gtg_control(self, ed, e_theta): 
         #This function returns the linear and angular speed to reach a given goal 
         #This functions receives the goal's position (x_target, y_target) [m] 
@@ -241,34 +277,6 @@ class GoToGoal():
             v=kv*ed #linear speed  
         return v,w 
 
-
-    def get_theta_ao(self, theta_closest): 
-        ##This function returns the angle for the Avoid obstacle behavior  
-        # theta_closest is the angle to the closest object [rad] 
-        #This functions returns the angle for the Avoid obstacle behavior [rad] 
-        ############################################################ 
-        thetaAO=theta_closest-np.pi 
-        #limit the angle to [-pi,pi] 
-        thetaAO = np.arctan2(np.sin(thetaAO),np.cos(thetaAO)) 
-
-        return thetaAO 
-
-
-    def get_theta_fw(self, thetaAO, clockwise): 
-        ## This function computes the linear and angular speeds for the robot 
-        # It receives thetaAO [rad] and clockwise [bool] 
-        # Clockwise true 
-        # CounterClockwise False
-        if clockwise is True:
-            theta_fw = thetaAO - np.pi/2.0
-        else:
-            theta_fw = thetaAO + np.pi/2.0
-        
-        theta_fw = np.arctan2(np.sin(theta_fw),np.cos(theta_fw)) # Limit to -pi to pi
-
-        return theta_fw
-
-
     def compute_fw_control(self, thetaFW, closest_range, closest_angle): 
         ## This function computes the linear and angular speeds for the robot 
         # It receives thetaFW [rad]    
@@ -287,21 +295,7 @@ class GoToGoal():
 
         return v, w
 
-
-    def get_angle(self, idx, angle_min, angle_increment):  
-        ## This function returns the angle for a given element of the object in the lidar's frame  
-        angle= angle_min + idx * angle_increment  
-        # Limit the angle to [-pi,pi]  
-        angle = np.arctan2(np.sin(angle),np.cos(angle))  
-        return angle  
-
-    def polar_to_cartesian(self,r,theta):  
-        ## This function converts polar coordinates to cartesian coordinates  
-        x = r*np.cos(theta)  
-        y = r*np.sin(theta)  
-
-        return (x,y)  
-
+    #?#********** FUNCIONES PARA MANEJO DE RECTA #?#**********
     def get_eq_values(self,x1,y1,x2,y2): 
         '''
         This function calculate A,B,C that we gonna use to point to line function
@@ -321,17 +315,13 @@ class GoToGoal():
         C = -A * x1 + y1
         self.calculate_line = False
         return A, B, C
-        
 
     def distance2line(self,A,B,C,x1,y1):
         print("Valores de la recta: ", A, B, C)
         d = abs((A*x1)+(B*y1)+C)/np.sqrt((A**2)+(B**2))
         return d
 
-    def limit_angle(self, angle):
-        """Funcion para limitar de -PI a PI cualquier angulo de entrada"""
-        return np.arctan2(np.sin(angle), np.cos(angle))
-
+    #?#********** CALLBACKS #?#**********
     def laser_cb(self, msg):   
         ## This function receives a message of type LaserScan   
         self.lidar_msg = msg  
