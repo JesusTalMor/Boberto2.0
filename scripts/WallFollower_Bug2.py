@@ -39,15 +39,15 @@ class GoToGoal():
         self.robot=Robot() #create an object of the Robot class 
 
         #?########### Variables ############### 
-        self.x_target= 0.40 #x position of the goal 
+        self.x_target= 0.01 #x position of the goal 
         self.y_target= 4.0 #y position of the goal 
         self.goal_received = True   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
-        target_position_tolerance = 0.14 #target position tolerance [m] 
+        target_position_tolerance = 0.25 #target position tolerance [m] 
 
         fw_distance = 0.25 # distance to activate the following walls behavior [m] 
-        tolerance = 1000.0 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
-        progress = 0.2
+        tolerance = 0.05 #If the robot is this close to the line with respect to when it started following walls it will stop following walls 
+        progress = 0.1
         v_msg=Twist() #Robot's desired speed  
 
         self.wr = 0.0 #right wheel speed [rad/s] 
@@ -98,7 +98,7 @@ class GoToGoal():
                 # Distancia a la recta, generada
                 d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
 
-                print("closest range",closest_angle)
+                print("closest range",closest_range)
 
                 # IF THE ROBOT IS AT GOAL....
                 if self.at_goal(d_t, target_position_tolerance):  
@@ -124,13 +124,16 @@ class GoToGoal():
 
                     else: # if we didn't detect an object
                         print("Moving to the Goal") 
-                        v_gtg, w_gtg = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
+                        v_gtg, w_gtg = self.compute_gtg_control(d_t, thetaGTG) 
                         v_msg.linear.x = v_gtg 
                         v_msg.angular.z = w_gtg 
 
                 elif self.current_state == 'Clockwise': 
                     # Revisar si tenemos un Clear Shot
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0 and d_p2line < tolerance: 
+                    print("Distancia de Progreso: ", round(d_t,2), round((D_Fw - progress),2), d_t < (D_Fw - progress))
+                    print("Angulo Clear Shot: ", round(abs(thetaAO-thetaGTG),2), abs(thetaAO-thetaGTG) < np.pi/2.0)
+                    print("Distancia a la recta: ", round(d_p2line,2), d_p2line < tolerance)
+                    if d_t < (D_Fw - progress) and d_p2line < tolerance: 
                         self.current_state = 'GoToGoal' 
                         print("Change to Go to goal") 
 
@@ -143,7 +146,10 @@ class GoToGoal():
 
 
                 elif self.current_state == 'CounterClockwise':
-                    if d_t < (D_Fw - progress) and abs(thetaAO-thetaGTG) < np.pi/2.0 and d_p2line < tolerance: #Clear Shot
+                    print("Distancia de Progreso: ", round(d_t,2), round((D_Fw - progress),2))
+                    print("Angulo Clear Shot: ", round(abs(thetaAO-thetaGTG),2))
+                    print("Distancia a la recta: ", round(d_p2line),2)
+                    if d_t < (D_Fw - progress) and d_p2line < tolerance: #Clear Shot
                         self.current_state = 'GoToGoal'
                         print("Change to Go to goal")
                     else:
@@ -190,15 +196,16 @@ class GoToGoal():
         return distancia < tolerancia
 
 
-    def get_closest_object(self, lidar_msg): 
-        #This function returns the closest object to the robot 
-        #This functions receives a ROS LaserScan message and returns the distance and direction to the closest object 
-        #returns  closest_range [m], closest_angle [rad], 
+    def get_closest_object(self, lidar_msg):
+        """ This function returns the closest object to the robot
+        This functions receives a ROS LaserScan message and returns the distance and direction to the closest object
+        returns  closest_range [m], closest_angle [rad], 
+        """ 
         min_idx = np.argmin(lidar_msg.ranges) 
-        closest_range = lidar_msg.ranges[min_idx] 
+        closest_range = lidar_msg.ranges[min_idx]
         closest_angle = lidar_msg.angle_min + min_idx * lidar_msg.angle_increment 
         # limit the angle to [-pi, pi] 
-        closest_angle = np.arctan2(np.sin(closest_angle), np.cos(closest_angle)) 
+        closest_angle = self.limit_angle(closest_angle) 
         return closest_range, closest_angle 
 
 
@@ -211,7 +218,7 @@ class GoToGoal():
         e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
         return e_theta 
 
-    def compute_gtg_control(self, x_target, y_target, x_robot, y_robot, theta_robot): 
+    def compute_gtg_control(self, ed, e_theta): 
         #This function returns the linear and angular speed to reach a given goal 
         #This functions receives the goal's position (x_target, y_target) [m] 
         #  and robot's position (x_robot, y_robot, theta_robot) [m, rad] 
@@ -221,13 +228,6 @@ class GoToGoal():
         #kw=0.5 
         av = 2.0 #Constant to adjust the exponential's growth rate   
         aw = 2.0 #Constant to adjust the exponential's growth rate 
-        ed=np.sqrt((x_target-x_robot)**2+(y_target-y_robot)**2) 
-        #Compute angle to the target position 
-        theta_target=np.arctan2(y_target-y_robot,x_target-x_robot) 
-        e_theta=theta_target-theta_robot 
-        #limit e_theta from -pi to pi 
-        #This part is very important to avoid abrupt changes when error switches between 0 and +-2pi 
-        e_theta = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
 
         #Compute the robot's angular speed 
         kw= kwmax*(1-np.exp(-aw*e_theta**2))/abs(e_theta) if e_theta != 0.0 else 0.0 #Constant to change the speed  
@@ -324,8 +324,13 @@ class GoToGoal():
         
 
     def distance2line(self,A,B,C,x1,y1):
+        print("Valores de la recta: ", A, B, C)
         d = abs((A*x1)+(B*y1)+C)/np.sqrt((A**2)+(B**2))
         return d
+
+    def limit_angle(self, angle):
+        """Funcion para limitar de -PI a PI cualquier angulo de entrada"""
+        return np.arctan2(np.sin(angle), np.cos(angle))
 
     def laser_cb(self, msg):   
         ## This function receives a message of type LaserScan   
