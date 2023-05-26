@@ -4,6 +4,7 @@ from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Float32 
 from sensor_msgs.msg import LaserScan   #Lidar 
 import numpy as np 
+# Pruebas
 class Robot(): 
     #This class implements the differential drive model of the robot 
     def __init__(self): 
