@@ -27,11 +27,12 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 1.0
-    self.target.y = 0.0
+    self.target.x = 0.8
+    self.target.y = 0.5
 
-    self.angle_precision = np.pi/90.0 # goal tolerance +/- error 2°
-    self.distance_precision = 0.3 # goal tolerance
+    self.initial_angle_precision = np.pi/90.0 # goal tolerance +/- error 2
+    self.angle_precision = np.pi/4.0 # goal tolerance +/- error 2    
+    self.distance_precision = 0.05 # goal tolerance
 
     rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
@@ -63,13 +64,14 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    if np.abs(error_theta) > self.angle_precision:
+    if np.abs(error_theta) > self.initial_angle_precision:
       vel_msg.angular.z = 0.2 if error_theta > 0 else -0.2
+      vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)
 
     # * To change state...
-    if np.abs(error_theta) <= self.angle_precision:
+    if np.abs(error_theta) <= self.initial_angle_precision:
       rospy.loginfo("Error theta: " + str(round(error_theta,2)))
       self.current_state = "GO"
 
@@ -79,14 +81,15 @@ class GoToGoal():
     x_target = target.x
     thetaGTG = np.arctan2(y_target-self.robot_pos.y,x_target-self.robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - self.robot_theta)
-    error_dist = np.sqrt(pow(y_target-self.robot_pos.y,2)+pow(x_target-self.robot_pos,2))
+    error_dist = np.sqrt(pow(y_target-self.robot_pos.y,2)+pow(x_target-self.robot_pos.x,2))
     # rospy.loginfo(error_theta)
 
     vel_msg = Twist()
 
     if error_dist > self.distance_precision:
       vel_msg.linear.x = 0.2
-      vel_msg.angular.z = 0.1 if error_theta > 0 else -0.1
+      vel_msg.angular.z = 0.0
+      # vel_msg.angular.z = 0.1 if error_theta > 0 else -0.1
 
     self.cmd_vel_pub.publish(vel_msg)
 
@@ -94,6 +97,7 @@ class GoToGoal():
     if error_dist <= self.distance_precision:
       rospy.loginfo("Error distance: " + str(round(error_dist,2)))
       self.current_state = "HERE"
+      return
     
     if np.abs(error_theta) > self.angle_precision:
       rospy.loginfo("Error theta: " + str(round(error_theta,2)))
@@ -123,6 +127,8 @@ class GoToGoal():
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
       print("Finish Message!!!")  
+      vel_msg = Twist()
+      self.cmd_vel_pub.publish(vel_msg)
 
 ############################### MAIN PROGRAM ####################################  
 

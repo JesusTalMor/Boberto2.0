@@ -332,7 +332,7 @@ class KFNode:
 ############################### MAIN PROGRAM ####################################  
 
 if __name__ == "__main__":   
-    rospy.init_node('move_forward_some_time') # Node Name
+    rospy.init_node('KALMANFILTER') # Node Name
     try: KFNode()  # Class Name
     except rospy.ROSInterruptException:
       rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")
