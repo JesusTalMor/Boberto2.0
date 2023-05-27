@@ -18,12 +18,12 @@ class GoToGoal():
     # service= rospy.Service('nombreeeee', objeto, self.callback)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
-    # Robot pos
+    # Posicion del Robot
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False 
-    self.current_state = "STOP"
+    self.active = True 
+    self.current_state = "FIX"
 
     # Define goal point
     self.target = Point()
@@ -43,9 +43,9 @@ class GoToGoal():
         continue
 
       if self.current_state == "FIX":
-        self.fix_angle(self.x_target, self.y_target)
+        self.fix_angle(self.target)
       elif self.current_state == "GO":
-        self.go_straight(self.x_target, self.y_target)
+        self.go_straight(self.target)
       elif self.current_state == "HERE":
         self.done()
       elif self.current_state == "STOP":
@@ -57,9 +57,9 @@ class GoToGoal():
     # Calculate thetaGTG
     y_target = target.y
     x_target = target.x
-    thetaGTG = np.arctan2(y_target-self.robot_y,x_target-self.robot_x)
+    thetaGTG = np.arctan2(y_target-self.robot_pos.y,x_target-self.robot_pos.y)
     error_theta = self.limit_angle(thetaGTG - self.robot_theta)
-    rospy.loginfo(error_theta)
+    # rospy.loginfo(error_theta)
 
     vel_msg = Twist()
 
@@ -70,33 +70,33 @@ class GoToGoal():
 
     # * To change state...
     if np.abs(error_theta) <= self.angle_precision:
-      rospy.loginfo("Error theta: ", round(error_theta,2))
+      rospy.loginfo("Error theta: " + str(round(error_theta,2)))
       self.current_state = "GO"
 
   def go_straight(self,target=Point()):
     # Calculate thetaGTG
     y_target = target.y
     x_target = target.x
-    thetaGTG = np.arctan2(y_target-self.robot_y,x_target-self.robot_x)
+    thetaGTG = np.arctan2(y_target-self.robot_pos.y,x_target-self.robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - self.robot_theta)
-    error_dist = np.sqrt(pow(y_target-self.robot_y,2)+pow(x_target-self.robot_x,2))
+    error_dist = np.sqrt(pow(y_target-self.robot_pos.y,2)+pow(x_target-self.robot_pos,2))
     # rospy.loginfo(error_theta)
 
     vel_msg = Twist()
 
     if error_dist > self.distance_precision:
-      vel_msg.linear.x = 0.4
+      vel_msg.linear.x = 0.2
       vel_msg.angular.z = 0.1 if error_theta > 0 else -0.1
 
     self.cmd_vel_pub.publish(vel_msg)
 
     # * To change state...
     if error_dist <= self.distance_precision:
-      rospy.loginfo("Error distance: ", round(error_dist,2))
+      rospy.loginfo("Error distance: " + str(round(error_dist,2)))
       self.current_state = "HERE"
     
     if np.abs(error_theta) > self.angle_precision:
-      rospy.loginfo("Error theta: ", round(error_theta,2))
+      rospy.loginfo("Error theta: " + str(round(error_theta,2)))
       self.current_state = "FIX"
 
   def done(self):

@@ -20,7 +20,7 @@ L = 0.18 #[m] Separacion entre llantas
 class KalmanFilter:
   """ Clase para implementar una fusion de datos usando el Filtro de Kalman
   """
-  def __init__(self) -> None:
+  def __init__(self):
     """ Iniciar Filtro en Valores Base 
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
@@ -73,7 +73,7 @@ class KalmanFilter:
       [2/L, -2/L]
     ])
     
-    H_ruido = H_ruido * 0.5 * self.r * dt 
+    H_ruido = H_ruido * 0.5 * r * dt 
 
     #* Calcular matrix Ruido Q
     Q = H_ruido.dot(sigma_ruido).dot(H_ruido.T)
@@ -163,7 +163,7 @@ class KFNode:
     KF = KalmanFilter() # Iniciar filtro de Kalaman
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
-    rate = rospy.Rate(50) # The rate of the while loop will be 50Hz 
+    rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     self.wl = 0.0
     self.wr = 0.0
     self.received_wl = False
@@ -231,7 +231,9 @@ class KFNode:
       x = KF.medidas[ix]
       y = KF.medidas[iy]
       theta = KF.medidas[itheta]
-      rospy.loginfo("Posicion Estimada: ", round(x,2), round(y,2), round(theta,2))
+      posicion = [round(x,2), round(y,2), round(theta,2)]
+      rospy.loginfo("Posicion Estimada: ")
+      rospy.loginfo(posicion)
       covarianza = KF.covarianza
 
       odom = self.fill_odom(x, y, theta, covarianza, v, w)
