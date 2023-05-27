@@ -172,8 +172,11 @@ class KFNode:
     self.fiducial_data = []
     #? TODOS LOS ID de los ARUCOS y sus coordenadas en el mundo
     self.POS_ARUCOS = {
-      "701": (2,2), 
-      "712": (5,1),
+      "701": (0.48,3.15), 
+      "702": (2.29,2.85),
+      "703": (1.04,4.65),
+      "704": (1.43,2.45),
+      "705": (1.20,0.98),
     }
     v = 0.0
     w = 0.0
@@ -200,6 +203,8 @@ class KFNode:
 
         #* Actualizar valor de tiempo
         init_time = current_time
+        self.received_wl = False
+        self.received_wr = False
       
       #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
       if self.fiducial_received is True:
@@ -219,11 +224,14 @@ class KFNode:
             pitch
           ]
           KF.update(aruco_pos, aruco_noise, aruco_diff)
+        
+        self.fiducial_received = False
       
       #* Sacamos los datos del filtro de Kalman
       x = KF.medidas[ix]
       y = KF.medidas[iy]
       theta = KF.medidas[itheta]
+      rospy.loginfo("Posicion Estimada: ", round(x,2), round(y,2), round(theta,2))
       covarianza = KF.covarianza
 
       odom = self.fill_odom(x, y, theta, covarianza, v, w)

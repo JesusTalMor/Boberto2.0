@@ -1,45 +1,40 @@
 #!/usr/bin/env python  
 import rospy  
 import numpy as np
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Point
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
-  '''
-    Tonteria de Template
-  '''
+  """ Clase para implementar un GO TO GOAL
+  """
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
+    rospy.Subscriber('/odom', Odometry, self.get_odom)
   
     ###******* INIT SERVICES *******### 
     # service= rospy.Service('nombreeeee', objeto, self.callback)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Robot pos
-    self.robot_x = 0.0
-    self.robot_y = 0.0
+    self.robot_pos = Point()
     self.robot_theta = 0.0
 
     self.active = False 
     self.current_state = "STOP"
 
     # Define goal point
-    self.x_target = 0.0
-    self.y_target = 0.0
+    self.target = Point()
+    self.target.x = 1.0
+    self.target.y = 0.0
 
-    # goal tolerance +/- error 2°
-    self.angle_precision = np.pi/90.0
-
-    # goal tolerance
-    self.distance_precision = 0.3
+    self.angle_precision = np.pi/90.0 # goal tolerance +/- error 2°
+    self.distance_precision = 0.3 # goal tolerance
 
     rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
-    # Grab possible simulation Error
-    # while rospy.get_time() == 0: 
-    #   print("no simulated time has been received yet") 
-    # start_time = rospy.get_time()  #Get the current time in float seconds 
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
@@ -48,22 +43,20 @@ class GoToGoal():
         continue
 
       if self.current_state == "FIX":
-        #  TODO IMPLEMENTAR FUNCION DE GIRO
-        pass
+        self.fix_angle(self.x_target, self.y_target)
       elif self.current_state == "GO":
-        #  TODO IMPLEMENTAR FUNCION DE IR RECTO
-        pass
+        self.go_straight(self.x_target, self.y_target)
       elif self.current_state == "HERE":
-        # TODO IMPLEMENTAR FUNCION DE LLEGAR AL GOAL
-        pass
+        self.done()
       elif self.current_state == "STOP":
-        # TODO IMPLEMENTAR STOP
-        pass
+        self.done()
 
       rate.sleep() 
 
-  def fix_angle(self,x_target,y_target):
+  def fix_angle(self, target=Point()):
     # Calculate thetaGTG
+    y_target = target.y
+    x_target = target.x
     thetaGTG = np.arctan2(y_target-self.robot_y,x_target-self.robot_x)
     error_theta = self.limit_angle(thetaGTG - self.robot_theta)
     rospy.loginfo(error_theta)
@@ -80,8 +73,10 @@ class GoToGoal():
       rospy.loginfo("Error theta: ", round(error_theta,2))
       self.current_state = "GO"
 
-  def go_straight(self,x_target,y_target):
+  def go_straight(self,target=Point()):
     # Calculate thetaGTG
+    y_target = target.y
+    x_target = target.x
     thetaGTG = np.arctan2(y_target-self.robot_y,x_target-self.robot_x)
     error_theta = self.limit_angle(thetaGTG - self.robot_theta)
     error_dist = np.sqrt(pow(y_target-self.robot_y,2)+pow(x_target-self.robot_x,2))
@@ -111,7 +106,20 @@ class GoToGoal():
   def limit_angle(self,angle):
     return np.arctan2(np.sin(angle),np.cos(angle))
 
+  def get_odom(self, msg=Odometry()):
+    # position
+    self.robot_pos = msg.pose.pose.position
     
+    # Angulo
+    quaternion = (
+      msg.pose.pose.orientation.x,
+      msg.pose.pose.orientation.y,
+      msg.pose.pose.orientation.z,
+      msg.pose.pose.orientation.w
+    )
+    euler = euler_from_quaternion(quaternion)
+    self.robot_theta = euler[2]
+
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
       print("Finish Message!!!")  
@@ -120,6 +128,6 @@ class GoToGoal():
 
 if __name__ == "__main__":   
     rospy.init_node('move_forward_some_time') # Node Name
-    try: TemplateClass()  # Class Name
+    try: GoToGoal()  # Class Name
     except rospy.ROSInterruptException:
       rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")
