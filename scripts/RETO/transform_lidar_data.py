@@ -49,7 +49,8 @@ class TransformLidar():
     len_ranges  = len(original_lidar.ranges)
     new_ranges = [np.inf]*len_ranges # Init the new array with inf
     new_ranges = np.roll(original_lidar.ranges, len_ranges/2)
-    print(new_ranges)
+    #print(new_ranges)
+    print("len",len(new_ranges))
     new_lidar.ranges = new_ranges
     new_lidar.header.frame_id = "base_link"
     return new_lidar
