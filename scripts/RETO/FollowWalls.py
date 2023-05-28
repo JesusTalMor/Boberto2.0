@@ -19,7 +19,7 @@ class GoToGoal():
     ###******* INIT CONSTANTS/VARIABLES *******###  
     self.active = True 
     self.lidar_received = False
-    self.current_state = "FOLLOW"
+    self.current_state = "FIND"
 
     # Regions of Interest for the robot
     self.areas = {
@@ -78,7 +78,7 @@ class GoToGoal():
   def find_wall(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.2
-    vel_msg.angular.z = 0.1
+    vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
   
   def turn_left_h(self):
@@ -109,17 +109,15 @@ class GoToGoal():
     vel_msg = Twist()
     vel_msg.linear.x = 0.2
     # * Calcular giro de seguridad
-    if self.R < 1.0:
-      control = 0.25 -self.R
-    elif self.L < 1.0:
-      control = 0.25 -self.L
+    # What side are we following ?
+    side = True if self.R < 0.3 else False
+    # Wall on the Right Side
+    if side is True:
+      control = 0.1 if self.R < 0.25 else -0.05
+    # Wall on the Left Side
     else:
-      control = 0.0
-    ganancia = 1
-    vel = control * ganancia
-    print(vel)
-    sign = 1 if vel > 0 else -1
-    vel_msg.angular.z = sign * vel if np.abs(vel) < 0.4 else sign * 0.4
+      control = -0.1 if self.L < 0.25 else 0.05
+    vel_msg.angular.z = control
     rospy.logwarn("Distancias laterales: \nR=" + str(round(self.R, 2)) + " L=" + str(round(self.L, 2)))
     self.cmd_vel_pub.publish(vel_msg)
   
@@ -192,6 +190,10 @@ class GoToGoal():
     elif F and not L and not R:
       state_description = "Muro Enfrente - Giro Arbitrario"
       self.current_state = "T_LEFTH"
+    
+    elif not F and not L and not FL and not FR and not R:
+      state_description = "Find Wall"
+      self.current_state = "FIND"
     
     # * Seguir hacia adelante
     elif not F:
