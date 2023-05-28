@@ -30,7 +30,7 @@ class KalmanFilter:
     self._x[itheta] = 0
 
     # Matriz de Covarianza 3x3 Inicial en zeros
-    self._P = np.eye(NUMVAR)
+    self._P = np.zeros((NUMVAR,NUMVAR))
   
   def predict(self, w_ruedas, w_error, dt):
     """ Realiza una prediccion de la posicion del Robot.
@@ -112,8 +112,8 @@ class KalmanFilter:
     
     #?#********** CALCULAR MATRIZ Z **********###
     Rk = np.array([
-      [aruco_noise[ix], 0],
-      [0, aruco_noise[iy]]
+      [aruco_noise, 0],
+      [0, aruco_noise]
     ])
     # 2x3 * 3x3 = 2x3 * 3x2 = 2x2 + 2x2
     Z = H.dot(self._P).dot(H.T) + Rk
@@ -170,12 +170,15 @@ class KFNode:
     self.fiducial_received = False
     self.fiducial_data = []
     #? TODOS LOS ID de los ARUCOS y sus coordenadas en el mundo
+    # self.POS_ARUCOS = {
+    #   "701": (0.48,3.15), 
+    #   "702": (2.29,2.85),
+    #   "703": (1.04,4.65),
+    #   "704": (1.43,2.45),
+    #   "705": (1.20,0.98),
+    # }
     self.POS_ARUCOS = {
-      "701": (0.48,3.15), 
-      "702": (2.29,2.85),
-      "703": (1.04,4.65),
-      "704": (1.43,2.45),
-      "705": (1.20,0.98),
+      "701" : (-1.19, 1.79)
     }
     v = 0.0
     w = 0.0
@@ -186,6 +189,7 @@ class KFNode:
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       #? Siempre vamos a estar realizando predicciones con kalman
+      print("Predecir nuevo valor")
       #* Si tenemos datos de las llantas hacemos una prediccion
       if self.received_wl is True and self.received_wr is True:     
         #* Tiempo de muestreo
@@ -205,10 +209,14 @@ class KFNode:
         self.received_wl = False
         self.received_wr = False
       
+      print("Buscar ARUCO")
       #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
       if self.fiducial_received is True:
+        rospy.logwarn("Aruco Detected: Updating Position")
         #* Por cada Aruco detectado se hace un update
         for fiducial in self.fiducial_data:
+          # prueba = FiducialTransform()
+          # prueba.object_error
           roll, pitch, yaw = euler_from_quaternion([
             fiducial.transform.rotation.x,
             fiducial.transform.rotation.y,
@@ -216,7 +224,7 @@ class KFNode:
             fiducial.transform.rotation.w,
           ])
           aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
-          aruco_noise = [0.087, 0.087] # Ruido de la medicion de los arucos
+          aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
           aruco_diff = [
             fiducial.transform.translation.x,
             fiducial.transform.translation.z,
