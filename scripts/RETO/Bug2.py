@@ -4,6 +4,8 @@ import numpy as np
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
+from sensor_msgs.msg import LaserScan
+from std_srvs.srv import SetBool
 import math
 
 class Bug2():  
@@ -13,18 +15,27 @@ class Bug2():
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
-    #? Exmaple: self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
-    # rospy.Subscriber('/nodoDeLidar', ???, self.regions_cb)
+    rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
     rospy.Subscriber('/odom', Odometry, self.get_odom)
 
     ###******* INIT SERVICES *******### 
-    # service= rospy.Service('nombreeeee', objeto, self.callback)
-    # TODO Agregar servicios de GoToGoalSwitch y WallFollowerSwitch
+    rospy.wait_for_service('/GoToGoalSwitch')
+    rospy.wait_for_service('/WallFollowerSwitch')
+    self.clientGTG = rospy.ServiceProxy('/GoToGoalSwitch', SetBool)
+    self.clientWF = rospy.ServiceProxy('/WallFollowerSwitch', SetBool)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
     self.robot_pos = Point()
     self.robot_theta = 0.0
+
+    # Definicion de punto inicial y goal
+    self.initial_pos = Point()
+    self.initial_pos.x = 0.0
+    self.initial_pos.y = 0.0
+    self.target = Point()
+    self.target.x = 4.0
+    self.target.y = 0.0
 
     # Definicion de estados
     self.current_state = "GTG"
@@ -33,9 +44,8 @@ class Bug2():
        "WF" : "WALL_FOLLOWER"
     }
 
-    # Definicion de regiones del lidar
+    # Bandera para indicar cuando tenga datos del las regiones
     self.region_recive = False
-    self.regions = None
 
     # Tiempo que se dura en un estado
     self.time = 0
@@ -54,7 +64,7 @@ class Bug2():
       distance_line = self.getDistanceLine()
 
       if self.current_state == "GTG":
-         if self.regions["F"] > 0.15 and self.regions["F"] < 1:
+         if self.Front > 0.15 and self.Front < 1:
             self.change_state("WF")
       elif self.change_state == "WF":
          if self.time == 5.0 and distance_line < 0.1:
@@ -72,14 +82,22 @@ class Bug2():
      self.time = 0
      self.current_state = state
 
-     # TODO aqui se cambia el estado en los servicios
+     if self.current_state == "GTG":
+        resp = self.clientGTG(True)
+        resp = self.clientWF(False)
+     if self.current_state == "FW":
+        resp = self.clientGTG(False)
+        resp = self.clientWF(True)
         
   def getDistanceLine(self,actual_pos):
-     pass
-     
+     up = math.fabs((self.target.y - self.initial_pos.y) * actual_pos.x - (self.target.x - self.initial_pos.x) * actual_pos.y + (self.target.x * self.initial_pos.y) - (self.target.y * self.initial_pos.x))
+     down = math.sqrt(pow(self.target.y - self.initial_pos.y, 2) + pow(self.target.x - self.initial_pos.x, 2))
+     return up / down
   
-  def regions_cb(self):
-     pass # TODO llenar esta funcion para que reciva de nodo de divide_line
+  def regions_cb(self,msg):
+     self.region_recive = True
+     aux = msg.ranges
+     self.Front = min(aux[503:645])
   
   def get_odom(self, msg=Odometry()):
     # position
