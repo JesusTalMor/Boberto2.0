@@ -65,6 +65,8 @@ class GoToGoal():
         self.turn_right_h()
       elif self.current_state == "FOLLOW":
         self.follow_wall()
+      elif self.current_state == "SENTINEL":
+        self.sentinel()
       elif self.current_state == "STOP":
         self.stop_robot()
       
@@ -93,13 +95,13 @@ class GoToGoal():
   def turn_right(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.1
-    vel_msg.angular.z = -0.4
+    vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
 
   def turn_left(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.1
-    vel_msg.angular.z = 0.4
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
 
   def follow_wall(self):
@@ -107,6 +109,12 @@ class GoToGoal():
     vel_msg.linear.x = 0.2
     vel_msg.angular.z = 0.0
     rospy.logwarn("Distancias laterales: " + str(self.R) + str(self.L))
+    self.cmd_vel_pub.publish(vel_msg)
+  
+  def sentinel(self):
+    vel_msg = Twist()
+    vel_msg.linear.x = 0.0
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
   
   def stop_robot(self):
@@ -135,7 +143,7 @@ class GoToGoal():
     self.L = areas['Left']
 
     d_lateral = 0.25
-    d_diagonal = 0.35
+    d_diagonal = 0.25
     R = areas['Right'] < d_lateral
     FR = areas['FRight'] < d_diagonal
     F = areas['Front'] < d_lateral
@@ -178,16 +186,20 @@ class GoToGoal():
       state_description = "Seguir el Muro"
       self.current_state = "FOLLOW"
     
-    # * Detener Robot
-    else:  
-      state_description = "Detener Robot"
-      rospy.logerr("Estado:")
-      rospy.logerr("Fontral:" + str(F))
-      rospy.logerr("Izquierdo:" + str(L))
-      rospy.logerr("Derecho:" + str(R))
-      rospy.logerr("FIzq:" + str(FL))
-      rospy.logerr("FDer:" + str(FR))
-      self.current_state = "STOP"
+    # * Modo sentinela
+    else:
+      state_description = "Modo sentinela"
+      self.current_state = "SENTINEL"
+    # # * Detener Robot
+    # else:  
+    #   state_description = "Detener Robot"
+    #   rospy.logerr("Estado:")
+    #   rospy.logerr("Fontral:" + str(F))
+    #   rospy.logerr("Izquierdo:" + str(L))
+    #   rospy.logerr("Derecho:" + str(R))
+    #   rospy.logerr("FIzq:" + str(FL))
+    #   rospy.logerr("FDer:" + str(FR))
+    #   self.current_state = "STOP"
     
     rospy.loginfo(state_description)
 
