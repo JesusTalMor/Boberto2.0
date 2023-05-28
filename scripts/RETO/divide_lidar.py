@@ -35,15 +35,17 @@ class divide_lidar():
          min_R = min(R)
 
          if min_L <= 0.3:
-            print("cosaaas a la izquierdaaaa")
+            print("L")
          elif min_FL <= 0.3:
-            print("cosaaas derecho a la izquierdaaa")
+            print("FL")
          elif min_F <= 0.3:
-            print("cosaaas al frenteeeeee")
+            print("F")
          elif min_FR <= 0.3:
-            print("cosaaas derecho a la derechaaaa")
+            print("FR")
          elif min_R <= 0.3:
-            print("cosaaas a la derechaaaaa")
+            print("R")
+         else:
+            print("nadaaaaaaaaaa")
       rate.sleep() 
 
   def get_lidar_cb(self, msg):
@@ -53,11 +55,11 @@ class divide_lidar():
   
   def divide(self):
      aux = self.lidar_msg.ranges
-     L = aux[215:359]
-     FL = aux[360:502]
+     R = aux[215:359]
+     FR = aux[360:502]
      F = aux[503:645]
-     FR = aux[646:788]
-     R = aux[789:931]   
+     FL = aux[646:788]
+     L = aux[789:931]   
 
      return L, FL, F, FR, R
 
