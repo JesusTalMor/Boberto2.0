@@ -12,7 +12,7 @@ class GoToGoal():
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
-    rospy.Subscriber('/odom', Odometry, self.get_odom)
+    rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
   
     ###******* INIT SERVICES *******### 
     # service= rospy.Service('nombreeeee', objeto, self.callback)
@@ -33,8 +33,8 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 0.8
-    self.target.y = 0.5
+    self.target.x = 4.0
+    self.target.y = 0.0
 
     self.initial_angle_precision = np.pi/90.0 # goal tolerance +/- error 2
     self.angle_precision = np.pi/4.0 # goal tolerance +/- error 2    
@@ -71,7 +71,7 @@ class GoToGoal():
     vel_msg = Twist()
 
     if np.abs(error_theta) > self.initial_angle_precision:
-      vel_msg.angular.z = 0.2 if error_theta > 0 else -0.2
+      vel_msg.angular.z = 0.4 if error_theta > 0 else -0.4
       vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)
