@@ -1,5 +1,6 @@
 #!/usr/bin/env python  
 import rospy  
+import numpy as np
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan   #Lidar 
 
@@ -107,8 +108,19 @@ class GoToGoal():
   def follow_wall(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.2
-    vel_msg.angular.z = 0.0
-    rospy.logwarn("Distancias laterales: " + str(self.R) + str(self.L))
+    # * Calcular giro de seguridad
+    if self.R < 1.0:
+      control = 0.25 -self.R
+    elif self.L < 1.0:
+      control = 0.25 -self.L
+    else:
+      control = 0.0
+    ganancia = 1
+    vel = control * ganancia
+    print(vel)
+    sign = 1 if vel > 0 else -1
+    vel_msg.angular.z = sign * vel if np.abs(vel) < 0.4 else sign * 0.4
+    rospy.logwarn("Distancias laterales: \nR=" + str(round(self.R, 2)) + " L=" + str(round(self.L, 2)))
     self.cmd_vel_pub.publish(vel_msg)
   
   def sentinel(self):
@@ -128,10 +140,10 @@ class GoToGoal():
     if self.lidar_received is False:
       self.areas = {
         "Right" : min(min(msg.ranges[215:359]), 10),
-        "FRight": min(min(msg.ranges[360:431]), 10),
-        "Front" : min(min(msg.ranges[432:717]), 10),  
-        "FLeft" : min(min(msg.ranges[718:789]), 10),
-        "Left"  : min(min(msg.ranges[790:933]), 10),
+        "FRight": min(min(msg.ranges[360:502]), 10),
+        "Front" : min(min(msg.ranges[503:645]), 10),  
+        "FLeft" : min(min(msg.ranges[646:788]), 10),
+        "Left"  : min(min(msg.ranges[789:931]), 10),
       }
       self.lidar_received = True
 
