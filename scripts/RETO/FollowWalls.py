@@ -4,7 +4,7 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan   #Lidar 
 
 class GoToGoal():  
-  """ Clase para implementar un GO TO GOAL
+  """ Clase para implementar un Follow Walls
   """
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
