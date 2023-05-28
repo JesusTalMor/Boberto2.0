@@ -127,12 +127,11 @@ class KalmanFilter:
     self._P = (np.eye(NUMVAR) - (K.dot(H))).dot(self._P)
 
     #?#********** ACTUALIZAR POSICIONES KALMAN **********###
-    ruido_ambos = 0.0085
-    componente_phi = np.sqrt(delta_x**2 + delta_y**2) + ruido_ambos
-    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] + ruido_ambos
+    componente_phi = np.sqrt(delta_x**2 + delta_y**2) 
+    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
-    componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) + ruido_ambos
-    componente_alpha = aruco_diff[itheta] +ruido_ambos
+    componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
+    componente_alpha = aruco_diff[itheta]
     observacion_aruco = np.array([componente_phi, componente_alpha])
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + K.dot(observacion_aruco - observacion_estimada)

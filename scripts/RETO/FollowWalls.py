@@ -1,5 +1,6 @@
 #!/usr/bin/env python  
 import rospy  
+import numpy as np
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan   #Lidar 
 
@@ -16,8 +17,9 @@ class GoToGoal():
     # service= rospy.Service('nombreeeee', objeto, self.callback)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
-    self.active = False 
-    self.current_state = "FIND"
+    self.active = True 
+    self.lidar_received = False
+    self.current_state = "FOLLOW"
 
     # Regions of Interest for the robot
     self.areas = {
@@ -46,6 +48,12 @@ class GoToGoal():
         rate.sleep() 
         continue
 
+      if self.lidar_received is False:
+        rate.sleep() 
+        continue
+
+      self.get_state()
+
       if self.current_state == "FIND":
         self.find_wall()
       elif self.current_state == "T_LEFT":
@@ -58,6 +66,12 @@ class GoToGoal():
         self.turn_right_h()
       elif self.current_state == "FOLLOW":
         self.follow_wall()
+      elif self.current_state == "SENTINEL":
+        self.sentinel()
+      elif self.current_state == "STOP":
+        self.stop_robot()
+      
+      self.lidar_received = False
 
       rate.sleep() 
 
@@ -70,75 +84,136 @@ class GoToGoal():
   def turn_left_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = 0.2
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
 
   def turn_right_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = -0.2
+    vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
   
   def turn_right(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.1
-    vel_msg.angular.z = -0.1
+    vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
 
   def turn_left(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.1
-    vel_msg.angular.z = 0.1
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
 
   def follow_wall(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.2
+    # * Calcular giro de seguridad
+    if self.R < 1.0:
+      control = 0.25 -self.R
+    elif self.L < 1.0:
+      control = 0.25 -self.L
+    else:
+      control = 0.0
+    ganancia = 1
+    vel = control * ganancia
+    print(vel)
+    sign = 1 if vel > 0 else -1
+    vel_msg.angular.z = sign * vel if np.abs(vel) < 0.4 else sign * 0.4
+    rospy.logwarn("Distancias laterales: \nR=" + str(round(self.R, 2)) + " L=" + str(round(self.L, 2)))
+    self.cmd_vel_pub.publish(vel_msg)
+  
+  def sentinel(self):
+    vel_msg = Twist()
+    vel_msg.linear.x = 0.0
+    vel_msg.angular.z = 0.5
+    self.cmd_vel_pub.publish(vel_msg)
+  
+  def stop_robot(self):
+    vel_msg = Twist()
+    vel_msg.linear.x = 0.0
     vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
 
+
   def get_ranges(self, msg=LaserScan()):
-    # TODO Cambiar los rangos
-    self.areas = {
-      "Right" : min(min(msg.ranges[215:359]), 10),
-      "FRight": min(min(msg.ranges[360:502]), 10),
-      "Front" : min(min(msg.ranges[503:645]), 10),  
-      "FLeft" : min(min(msg.ranges[646:788]), 10),
-      "Left"  : min(min(msg.ranges[789:931]), 10),
-    }
+    if self.lidar_received is False:
+      self.areas = {
+        "Right" : min(min(msg.ranges[215:359]), 10),
+        "FRight": min(min(msg.ranges[360:502]), 10),
+        "Front" : min(min(msg.ranges[503:645]), 10),  
+        "FLeft" : min(min(msg.ranges[646:788]), 10),
+        "Left"  : min(min(msg.ranges[789:931]), 10),
+      }
+      self.lidar_received = True
+
 
   def get_state(self):
-    vel_msg = Twist()
     state_description = ""
     areas = self.areas 
+    self.R = areas['Right']
+    self.L = areas['Left']
 
-    d = 1.5
-    R = areas['Right'] < d
-    FR = areas['FRight'] < d
-    F = areas['Front'] < d
-    FL = areas['FLeft'] < d
-    L = areas['Left'] < d
+    d_lateral = 0.25
+    d_diagonal = 0.25
+    R = areas['Right'] < d_lateral
+    FR = areas['FRight'] < d_diagonal
+    F = areas['Front'] < d_lateral
+    FL = areas['FLeft'] < d_diagonal
+    L = areas['Left'] < d_lateral
 
 
     # * Giro Forzoso Derecha
     if F and FL and L and not R and not FR:
+      state_description = "Esquina - Girar Derecha"
       self.current_state = "T_RIGHTH"
+    
     # * Giro Forzoso Izquierda
     elif F and FR and R and not L and not FL:
+      state_description = "Esquina - Girar Izquierda"
       self.current_state = "T_LEFTH"
+    
     # ! Hacer Giro de 180 grados
     elif F and FR and R and L and FL:
+      state_description = "Cierre Tipo U - Girar 180 Grados"
       self.current_state = "T_LEFTH"
-    # * Girar por la derecha
+    
+    # * Girar siguiendo la esquina a la Derecha
     elif R and not F and not FR:
+      state_description = "Seguir Esquina - Derecha"
       self.current_state = "T_RIGHT"
-    # * Girar usando Following Walls
+    
+    # * Girar siguiendo la esquina a la izquierda
     elif L and not F and not FL:
+      state_description = "Seguir Esquina - Izquierda"
       self.current_state = "T_LEFT"
+    
+    # * Giro Arbitrario a la izquierda
     elif F and not L and not R:
+      state_description = "Muro Enfrente - Giro Arbitrario"
       self.current_state = "T_LEFTH"
-    else:
+    
+    # * Seguir hacia adelante
+    elif not F:
+      state_description = "Seguir el Muro"
       self.current_state = "FOLLOW"
+    
+    # * Modo sentinela
+    else:
+      state_description = "Modo sentinela"
+      self.current_state = "SENTINEL"
+    # # * Detener Robot
+    # else:  
+    #   state_description = "Detener Robot"
+    #   rospy.logerr("Estado:")
+    #   rospy.logerr("Fontral:" + str(F))
+    #   rospy.logerr("Izquierdo:" + str(L))
+    #   rospy.logerr("Derecho:" + str(R))
+    #   rospy.logerr("FIzq:" + str(FL))
+    #   rospy.logerr("FDer:" + str(FR))
+    #   self.current_state = "STOP"
+    
+    rospy.loginfo(state_description)
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
