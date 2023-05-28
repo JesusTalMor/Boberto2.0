@@ -24,6 +24,12 @@ class GoToGoal():
 
     self.active = True 
     self.current_state = "FIX"
+    states = {
+      "FIX" : "FIX_ANGLE",
+      "GO" : "GO_STRAIGHT",
+      "HERE" : "ON_GOAL",
+      "STOP" : "STOP"
+    }
 
     # Define goal point
     self.target = Point()
