@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, Point
 from nav_msgs.msg import Odometry
+from std_srvs.srv import SetBool, SetBoolResponse
 from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
@@ -15,7 +16,7 @@ class GoToGoal():
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
   
     ###******* INIT SERVICES *******### 
-    # service= rospy.Service('nombreeeee', objeto, self.callback)
+    service= rospy.Service('/GoToGoalSwitch', SetBool, self.gtg_Switch)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
@@ -129,6 +130,13 @@ class GoToGoal():
     )
     euler = euler_from_quaternion(quaternion)
     self.robot_theta = euler[2]
+
+  def gtg_Switch(self,req):
+    self.active = req.data
+    res = SetBoolResponse()
+    res.success = True
+    res.message = 'Done!'
+    return res
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
