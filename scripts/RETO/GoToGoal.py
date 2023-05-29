@@ -3,7 +3,6 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, Point
 from nav_msgs.msg import Odometry
-from std_srvs.srv import SetBool, SetBoolResponse
 from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
