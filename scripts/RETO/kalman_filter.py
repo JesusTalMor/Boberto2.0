@@ -131,7 +131,7 @@ class KalmanFilter:
     componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
     componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-    componente_alpha = aruco_diff[itheta]
+    componente_alpha = np.arctan2(np.sin(aruco_diff[itheta]), np.cos(aruco_diff[itheta]))
     observacion_aruco = np.array([componente_phi, componente_alpha])
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + K.dot(observacion_aruco - observacion_estimada)
@@ -178,7 +178,8 @@ class KFNode:
     #   "705": (1.20,0.98),
     # }
     self.POS_ARUCOS = {
-      "701" : (-1.19, 1.79)
+      "701" : (1.79, 1.19),
+      "712" : (2.98, -1.19),
     }
     v = 0.0
     w = 0.0

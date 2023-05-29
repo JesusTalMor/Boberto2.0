@@ -108,15 +108,15 @@ class GoToGoal():
   def follow_wall(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.2
-    # * Calcular giro de seguridad
-    # What side are we following ?
+    # # * Calcular giro de seguridad
+    # # What side are we following ?
     side = True if self.R < 0.3 else False
     # Wall on the Right Side
     if side is True:
-      control = 0.1 if self.R < 0.25 else -0.05
+      control = 0.1 if self.R < 0.25 else 0.0
     # Wall on the Left Side
     else:
-      control = -0.1 if self.L < 0.25 else 0.05
+      control = -0.1 if self.L < 0.25 else 0.0
     vel_msg.angular.z = control
     rospy.logwarn("Distancias laterales: \nR=" + str(round(self.R, 2)) + " L=" + str(round(self.L, 2)))
     self.cmd_vel_pub.publish(vel_msg)
