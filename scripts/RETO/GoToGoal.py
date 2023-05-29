@@ -21,7 +21,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False
+    self.active = True
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -32,7 +32,7 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 4.0
+    self.target.x = 5.0
     self.target.y = 0.0
 
     self.initial_angle_precision = np.pi/90.0 # goal tolerance +/- error 2

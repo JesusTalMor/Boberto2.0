@@ -20,7 +20,7 @@ class FollowWalls():
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
 
     #?#********** NODE MANAGER VARIABLES **********#?#
-    self.active = True 
+    self.active = False 
     self.lidar_received = False
     self.current_state = "FIND"
     self.goal_received = True
@@ -53,8 +53,8 @@ class FollowWalls():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 4.0
-    self.target.y = 0.5
+    self.target.x = 5.0
+    self.target.y = 0.0
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
