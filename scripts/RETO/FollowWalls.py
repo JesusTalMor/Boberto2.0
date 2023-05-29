@@ -7,7 +7,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan   #Lidar 
 from tf.transformations import euler_from_quaternion
 
-class GoToGoal():  
+class FollowWalls():  
   """ Clase para implementar un Follow Walls
   """
   def __init__(self):  
@@ -36,6 +36,7 @@ class GoToGoal():
     }
 
     states = {
+
       "FIND" : "Find The Wall",
       "T_LEFT" : "Turn Left corner",
       "T_RIGHT" : "Turn Right corner",
@@ -53,7 +54,7 @@ class GoToGoal():
     # Define goal point
     self.target = Point()
     self.target.x = 4.0
-    self.target.y = -0.5
+    self.target.y = 0.5
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
@@ -107,21 +108,21 @@ class GoToGoal():
   def turn_left_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = 0.5
+    vel_msg.angular.z = 0.4
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = -0.5
+    vel_msg.angular.z = -0.4
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.1
+    vel_msg.linear.x = 0.07
     vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.1
+    vel_msg.linear.x = 0.07
     vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
@@ -134,17 +135,17 @@ class GoToGoal():
     side = True if R < 0.3 else False
     # Wall on the Right Side
     if side is True:
-      control = 0.05 if R < 0.25 else -0.02
+      control = 0.1 if R < 0.20 else -0.0
     # Wall on the Left Side
     else:
-      control = -0.05 if L < 0.25 else 0.02
+      control = -0.1 if L < 0.20 else 0.0
     vel_msg.angular.z = control
-    # rospy.logwarn("Distancias laterales: \nR=" + str(round(self.R, 2)) + " L=" + str(round(self.L, 2)))
+    # vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = 0.5
+    vel_msg.angular.z = 0.4
     self.cmd_vel_pub.publish(vel_msg)
   def stop_robot(self):
     vel_msg = Twist()
@@ -168,8 +169,8 @@ class GoToGoal():
     state_description = ""
     areas = self.areas 
 
-    d_lateral = 0.25
-    d_diagonal = 0.25
+    d_lateral = 0.30
+    d_diagonal = 0.30
     R = areas['Right'] < d_lateral
     FR = areas['FRight'] < d_diagonal
     F = areas['Front'] < d_lateral
@@ -221,7 +222,7 @@ class GoToGoal():
     # * Modo sentinela
     else:
       state_description = "Modo sentinela"
-      self.current_state = "SENTINEL"
+      self.current_state = self.turn_decision
     
     rospy.loginfo(state_description)
   def get_active(self, msg=Bool):
@@ -287,6 +288,6 @@ class GoToGoal():
 
 if __name__ == "__main__":   
     rospy.init_node('FOLLOWALL') # Node Name
-    try: GoToGoal()  # Class Name
+    try: FollowWalls()  # Class Name
     except rospy.ROSInterruptException:
       rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")
