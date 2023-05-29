@@ -62,8 +62,8 @@ class KalmanFilter:
     #?#********** CALCULAR MATRIX RUIDO **********### 
     #* Calcular Matrix sigma_ruido
     sigma_ruido = np.array([
-      [(wr_e * abs(wr)), 0],
-      [0, (wl_e * abs(wl))]
+      [(wr_e * np.abs(wr)), 0],
+      [0, (wl_e * np.abs(wl))]
     ])
 
     #* Calcular Hacobiano para ruido
@@ -107,7 +107,7 @@ class KalmanFilter:
     # Forma Matriz 2x3, 
     H = np.array([ 
       [-delta_x/np.sqrt(phi), -delta_y/np.sqrt(phi), 0],
-      [delta_y/np.sqrt(phi), delta_x/np.sqrt(phi), -1]
+      [delta_y/np.sqrt(phi), -delta_x/np.sqrt(phi), -1]
     ])
     
     #?#********** CALCULAR MATRIZ Z **********###
