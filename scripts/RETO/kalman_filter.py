@@ -30,7 +30,7 @@ class KalmanFilter:
     self._x[itheta] = 0
 
     # Matriz de Covarianza 3x3 Inicial en zeros
-    self._P = np.eye(NUMVAR)
+    self._P = np.zeros((NUMVAR,NUMVAR))
   
   def predict(self, w_ruedas, w_error, dt):
     """ Realiza una prediccion de la posicion del Robot.
@@ -112,8 +112,8 @@ class KalmanFilter:
     
     #?#********** CALCULAR MATRIZ Z **********###
     Rk = np.array([
-      [aruco_noise[ix], 0],
-      [0, aruco_noise[iy]]
+      [aruco_noise, 0],
+      [0, aruco_noise]
     ])
     # 2x3 * 3x3 = 2x3 * 3x2 = 2x2 + 2x2
     Z = H.dot(self._P).dot(H.T) + Rk
@@ -128,10 +128,10 @@ class KalmanFilter:
 
     #?#********** ACTUALIZAR POSICIONES KALMAN **********###
     componente_phi = np.sqrt(delta_x**2 + delta_y**2) 
-    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
+    componente_alpha = np.arctan2(delta_y,delta_x) # - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
     componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-    componente_alpha = aruco_diff[itheta]
+    componente_alpha = np.arctan2(aruco_diff[iy],aruco_diff[ix]) # - aruco_diff[itheta]
     observacion_aruco = np.array([componente_phi, componente_alpha])
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + K.dot(observacion_aruco - observacion_estimada)
@@ -170,12 +170,19 @@ class KFNode:
     self.fiducial_received = False
     self.fiducial_data = []
     #? TODOS LOS ID de los ARUCOS y sus coordenadas en el mundo
+    # self.POS_ARUCOS = {
+    #   "701": (0.48,3.15), 
+    #   "702": (2.29,2.85),
+    #   "703": (1.04,4.65),
+    #   "704": (1.43,2.45),
+    #   "705": (1.20,0.98),
+    # }
+    # self.POS_ARUCOS = {
+    #   "701" : (1.79, 1.19),
+    #   "712" : (2.98, -1.19),
+    # }
     self.POS_ARUCOS = {
-      "701": (0.48,3.15), 
-      "702": (2.29,2.85),
-      "703": (1.04,4.65),
-      "704": (1.43,2.45),
-      "705": (1.20,0.98),
+      "701" : (3.15, -0.1)
     }
     v = 0.0
     w = 0.0
@@ -205,26 +212,31 @@ class KFNode:
         self.received_wl = False
         self.received_wr = False
       
-      #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
-      if self.fiducial_received is True:
-        #* Por cada Aruco detectado se hace un update
-        for fiducial in self.fiducial_data:
-          roll, pitch, yaw = euler_from_quaternion([
-            fiducial.transform.rotation.x,
-            fiducial.transform.rotation.y,
-            fiducial.transform.rotation.z,
-            fiducial.transform.rotation.w,
-          ])
-          aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
-          aruco_noise = [0.087, 0.087] # Ruido de la medicion de los arucos
-          aruco_diff = [
-            fiducial.transform.translation.x,
-            fiducial.transform.translation.z,
-            pitch
-          ]
-          KF.update(aruco_pos, aruco_noise, aruco_diff)
-        
-        self.fiducial_received = False
+        #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
+        if self.fiducial_received is True:
+          #* Por cada Aruco detectado se hace un update
+          for fiducial in self.fiducial_data:
+            # prueba = FiducialTransform()
+            # prueba.object_error
+            roll, pitch, yaw = euler_from_quaternion([
+              fiducial.transform.rotation.x,
+              fiducial.transform.rotation.y,
+              fiducial.transform.rotation.z,
+              fiducial.transform.rotation.w,
+            ])
+            aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
+            aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
+            aruco_diff = [
+              fiducial.transform.translation.z + 0.08, 
+              - fiducial.transform.translation.x,
+              pitch
+            ]
+            distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
+            if distancia_aruco < 0.8:
+              rospy.logwarn("Aruco Detected: Updating Position")
+              KF.update(aruco_pos, aruco_noise, aruco_diff)
+          
+          self.fiducial_received = False
       
       #* Sacamos los datos del filtro de Kalman
       x = KF.medidas[ix]
