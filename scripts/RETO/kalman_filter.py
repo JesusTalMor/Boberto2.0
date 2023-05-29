@@ -128,11 +128,10 @@ class KalmanFilter:
 
     #?#********** ACTUALIZAR POSICIONES KALMAN **********###
     componente_phi = np.sqrt(delta_x**2 + delta_y**2) 
-    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
+    componente_alpha = np.arctan2(delta_y,delta_x) # - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
     componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-    componente_alpha = np.arctan2(aruco_diff[iy],aruco_diff[ix]) - aruco_diff[itheta]
-    # componente_alpha = np.arctan2(np.sin(aruco_diff[itheta]), np.cos(aruco_diff[itheta]))
+    componente_alpha = np.arctan2(aruco_diff[iy],aruco_diff[ix]) # - aruco_diff[itheta]
     observacion_aruco = np.array([componente_phi, componente_alpha])
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + K.dot(observacion_aruco - observacion_estimada)
@@ -178,9 +177,12 @@ class KFNode:
     #   "704": (1.43,2.45),
     #   "705": (1.20,0.98),
     # }
+    # self.POS_ARUCOS = {
+    #   "701" : (1.79, 1.19),
+    #   "712" : (2.98, -1.19),
+    # }
     self.POS_ARUCOS = {
-      "701" : (1.79, 1.19),
-      "712" : (2.98, -1.19),
+      "701" : (3.15, -0.1)
     }
     v = 0.0
     w = 0.0
@@ -225,8 +227,8 @@ class KFNode:
             aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
             aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
             aruco_diff = [
-              fiducial.transform.translation.z,
-              fiducial.transform.translation.x,
+              fiducial.transform.translation.z + 0.08, 
+              - fiducial.transform.translation.x,
               pitch
             ]
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
