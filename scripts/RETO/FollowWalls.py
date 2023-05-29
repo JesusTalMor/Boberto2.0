@@ -32,7 +32,7 @@ class FollowWalls():
       "front" : 0.0,  
       "fleft" : 0.0,
       "left"  : 0.0,
-      "MIN" : 0.0,
+      "MIN_ANGLE" : 0.0,
     }
 
     states = {
