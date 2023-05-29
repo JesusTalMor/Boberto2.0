@@ -51,6 +51,8 @@ class Bug2():
     self.time = 0
     loop = 0
 
+    self.change_state("GTG")
+
     rate = rospy.Rate(50) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
     
@@ -58,17 +60,19 @@ class Bug2():
     while not rospy.is_shutdown(): 
       # Espera a que reciba regiones del lidar
       if self.region_recive is False:
+         rate.sleep()
          continue
       
       # Calcula la distancia del robot a la linea
       distance_line = self.getDistanceLine()
 
-      if self.current_state == "GTG":
-         if self.Front > 0.15 and self.Front < 1:
-            self.change_state("WF")
-      elif self.change_state == "WF":
-         if self.time == 5.0 and distance_line < 0.1:
-            self.change_state("GTG")
+
+      # if self.current_state == "GTG":
+      #    if self.Front > 0.15 and self.Front < 1:
+      #       self.change_state("WF")
+      # elif self.change_state == "WF":
+      #    if self.time == 5.0 and distance_line < 0.1:
+      #       self.change_state("GTG")
       
       loop = loop + 1
       if loop == 20:
@@ -81,9 +85,12 @@ class Bug2():
   def change_state(self,state):
      self.time = 0
      self.current_state = state
-
+     req = SetBool()
+     
      if self.current_state == "GTG":
-        resp = self.clientGTG(True)
+        req.
+        resp = self.clientGTG()
+        print("Se solicito a GTG true")
         resp = self.clientWF(False)
      if self.current_state == "FW":
         resp = self.clientGTG(False)
@@ -94,7 +101,7 @@ class Bug2():
      down = math.sqrt(pow(self.target.y - self.initial_pos.y, 2) + pow(self.target.x - self.initial_pos.x, 2))
      return up / down
   
-  def regions_cb(self,msg):
+  def get_lidar_cb(self,msg):
      self.region_recive = True
      aux = msg.ranges
      self.Front = min(aux[503:645])

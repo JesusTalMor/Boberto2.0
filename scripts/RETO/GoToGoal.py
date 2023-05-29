@@ -16,14 +16,14 @@ class GoToGoal():
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
   
     ###******* INIT SERVICES *******### 
-    service= rospy.Service('/GoToGoalSwitch', SetBool, self.gtg_Switch)
+    service = rospy.Service('/GoToGoalSwitch', SetBool, self.gtg_Switch)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = True 
+    self.active = False
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -132,6 +132,7 @@ class GoToGoal():
     self.robot_theta = euler[2]
 
   def gtg_Switch(self,req):
+    print("se recivio solicitud")
     self.active = req.data
     res = SetBoolResponse()
     res.success = True
