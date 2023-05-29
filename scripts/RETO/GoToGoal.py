@@ -3,7 +3,7 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, Point
 from nav_msgs.msg import Odometry
-from std_srvs.srv import SetBool, SetBoolResponse
+from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
@@ -14,7 +14,7 @@ class GoToGoal():
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
-    rospy.Subscriber('gtg_topic', bool, self.gtg_Switch)
+    rospy.Subscriber('gtg_topic', Bool, self.gtg_Switch)
   
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
@@ -130,7 +130,7 @@ class GoToGoal():
     self.robot_theta = euler[2]
 
   def gtg_Switch(self,msg):
-    self.active = msg
+    self.active = msg.data
     
 
   def cleanup(self):  

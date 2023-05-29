@@ -4,8 +4,8 @@ import numpy as np
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
+from std_msgs.msg import Bool
 from sensor_msgs.msg import LaserScan
-from std_srvs.srv import SetBool
 import math
 
 class Bug2():  
@@ -17,8 +17,8 @@ class Bug2():
     ###******* INIT PUBLISHERS *******###  
     rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
     rospy.Subscriber('/odom', Odometry, self.get_odom)
-    self.gtg_topic = rospy.Publisher('gtg_topic', bool, queue_size=1)
-    self.fw_topic = rospy.Publisher('fw_topic', bool, queue_size=1)    
+    self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
+    self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)    
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
@@ -64,10 +64,10 @@ class Bug2():
 
 
       if self.current_state == "GTG":
-         if self.Front > 0.15 and self.Front < 1:
+         if self.Front > 0.30 and self.Front < 1:
             self.change_state("WF")
       elif self.change_state == "WF":
-         if self.time == 5.0 and distance_line < 0.1:
+         if self.time == 5.0 and distance_line < 0.10:
             self.change_state("GTG")
       
       loop = loop + 1
