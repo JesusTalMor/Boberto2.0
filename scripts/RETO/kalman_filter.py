@@ -131,7 +131,8 @@ class KalmanFilter:
     componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
     componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-    componente_alpha = np.arctan2(np.sin(aruco_diff[itheta]), np.cos(aruco_diff[itheta]))
+    componente_alpha = np.arctan2(aruco_diff[iy],aruco_diff[ix]) - aruco_diff[itheta]
+    # componente_alpha = np.arctan2(np.sin(aruco_diff[itheta]), np.cos(aruco_diff[itheta]))
     observacion_aruco = np.array([componente_phi, componente_alpha])
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + K.dot(observacion_aruco - observacion_estimada)
@@ -190,7 +191,6 @@ class KFNode:
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       #? Siempre vamos a estar realizando predicciones con kalman
-      print("Predecir nuevo valor")
       #* Si tenemos datos de las llantas hacemos una prediccion
       if self.received_wl is True and self.received_wr is True:     
         #* Tiempo de muestreo
@@ -210,30 +210,31 @@ class KFNode:
         self.received_wl = False
         self.received_wr = False
       
-      print("Buscar ARUCO")
-      #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
-      if self.fiducial_received is True:
-        rospy.logwarn("Aruco Detected: Updating Position")
-        #* Por cada Aruco detectado se hace un update
-        for fiducial in self.fiducial_data:
-          # prueba = FiducialTransform()
-          # prueba.object_error
-          roll, pitch, yaw = euler_from_quaternion([
-            fiducial.transform.rotation.x,
-            fiducial.transform.rotation.y,
-            fiducial.transform.rotation.z,
-            fiducial.transform.rotation.w,
-          ])
-          aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
-          aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
-          aruco_diff = [
-            fiducial.transform.translation.x,
-            fiducial.transform.translation.z,
-            pitch
-          ]
-          KF.update(aruco_pos, aruco_noise, aruco_diff)
-        
-        self.fiducial_received = False
+        #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
+        if self.fiducial_received is True:
+          #* Por cada Aruco detectado se hace un update
+          for fiducial in self.fiducial_data:
+            # prueba = FiducialTransform()
+            # prueba.object_error
+            roll, pitch, yaw = euler_from_quaternion([
+              fiducial.transform.rotation.x,
+              fiducial.transform.rotation.y,
+              fiducial.transform.rotation.z,
+              fiducial.transform.rotation.w,
+            ])
+            aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
+            aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
+            aruco_diff = [
+              fiducial.transform.translation.z,
+              fiducial.transform.translation.x,
+              pitch
+            ]
+            distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
+            if distancia_aruco < 0.8:
+              rospy.logwarn("Aruco Detected: Updating Position")
+              KF.update(aruco_pos, aruco_noise, aruco_diff)
+          
+          self.fiducial_received = False
       
       #* Sacamos los datos del filtro de Kalman
       x = KF.medidas[ix]
