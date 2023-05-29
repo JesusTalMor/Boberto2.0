@@ -12,9 +12,7 @@ class GoToGoal():
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
     rospy.Subscriber("base_scan", LaserScan, self.get_ranges) 
-  
-    ###******* INIT SERVICES *******### 
-    # service= rospy.Service('nombreeeee', objeto, self.callback)
+    rospy.Subscriber('fw_topic', bool, self.fw_Switch)
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     self.active = True 
@@ -216,6 +214,9 @@ class GoToGoal():
     #   self.current_state = "STOP"
     
     rospy.loginfo(state_description)
+  
+  def fw_Switch(self,msg):
+    self.active = msg
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''

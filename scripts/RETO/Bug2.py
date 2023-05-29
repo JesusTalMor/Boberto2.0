@@ -17,12 +17,8 @@ class Bug2():
     ###******* INIT PUBLISHERS *******###  
     rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
     rospy.Subscriber('/odom', Odometry, self.get_odom)
-
-    ###******* INIT SERVICES *******### 
-    rospy.wait_for_service('/GoToGoalSwitch')
-    rospy.wait_for_service('/WallFollowerSwitch')
-    self.clientGTG = rospy.ServiceProxy('/GoToGoalSwitch', SetBool)
-    self.clientWF = rospy.ServiceProxy('/WallFollowerSwitch', SetBool)
+    self.gtg_topic = rospy.Publisher('gtg_topic', bool, queue_size=1)
+    self.fw_topic = rospy.Publisher('fw_topic', bool, queue_size=1)    
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
@@ -67,12 +63,12 @@ class Bug2():
       distance_line = self.getDistanceLine()
 
 
-      # if self.current_state == "GTG":
-      #    if self.Front > 0.15 and self.Front < 1:
-      #       self.change_state("WF")
-      # elif self.change_state == "WF":
-      #    if self.time == 5.0 and distance_line < 0.1:
-      #       self.change_state("GTG")
+      if self.current_state == "GTG":
+         if self.Front > 0.15 and self.Front < 1:
+            self.change_state("WF")
+      elif self.change_state == "WF":
+         if self.time == 5.0 and distance_line < 0.1:
+            self.change_state("GTG")
       
       loop = loop + 1
       if loop == 20:
@@ -85,16 +81,13 @@ class Bug2():
   def change_state(self,state):
      self.time = 0
      self.current_state = state
-     req = SetBool()
      
      if self.current_state == "GTG":
-        req.
-        resp = self.clientGTG()
-        print("Se solicito a GTG true")
-        resp = self.clientWF(False)
+        self.gtg_topic.publish(True)
+        self.fw_topic.publish(False)
      if self.current_state == "FW":
-        resp = self.clientGTG(False)
-        resp = self.clientWF(True)
+        self.gtg_topic.publish(False)
+        self.fw_topic.publish(True)
         
   def getDistanceLine(self,actual_pos):
      up = math.fabs((self.target.y - self.initial_pos.y) * actual_pos.x - (self.target.x - self.initial_pos.x) * actual_pos.y + (self.target.x * self.initial_pos.y) - (self.target.y * self.initial_pos.x))
