@@ -110,11 +110,13 @@ class Bug2():
       if self.current_state == "GTG":
          self.gtg_topic.publish(True)
          self.fw_topic.publish(False)
+         rospy.sleep(2)
       if self.current_state == "FW":
          self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW
          print("Distancia: " ,self.D_Fw)
          self.gtg_topic.publish(False)
          self.fw_topic.publish(True)
+
 
    #?# ********** CALLBACKS #?#**********
    def get_lidar_cb(self,msg):
