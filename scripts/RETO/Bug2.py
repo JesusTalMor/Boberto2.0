@@ -50,9 +50,9 @@ class Bug2():
 
       # Variables
       progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
-      tolerance = 0.05 # Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
-      self.d_t = 0
-      self.D_Fw = 0
+      tolerance = 0.30 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
+      self.d_t = 0.0
+      self.D_Fw = 0.0
 
       #self.change_state("GTG")
 
@@ -68,7 +68,7 @@ class Bug2():
 
          # Calcula la distancia del robot a la linea
          distance_line = self.getDistanceLine(self.robot_pos)
-         print("dis ",distance_line)       
+   
 
          # Calcula el angulo para evitar obstaculo
          thetaAO = self.get_theta_ao(self.closest_angle)
@@ -78,17 +78,22 @@ class Bug2():
 
          # Distancia al goal
          self.d_t = np.sqrt((self.target.x-self.robot_pos.x)**2+(self.target.y-self.robot_pos.y)**2) 
-         print("dt",self.d_t)
-         print("diference ",(self.D_Fw - progress))
 
          if self.current_state == "GTG":
             # Si hay un obstaculo, cambia a comportamiento de FW
-            if self.Front > 0.20 and self.Front < 1:
-               print("cambia a FW")
+            if self.Front > 0.30 and self.Front < 1.0:
+               
                self.change_state("FW")
+               print ("se cambio a fw")
          elif self.current_state == "FW":
             # Calcular angulos 
             theta_clear_shot = abs(self.limit_angle(thetaAO-thetaGTG))
+            print("Distancia: " ,self.D_Fw)
+            print(self.d_t < (self.D_Fw - progress))
+            print(theta_clear_shot < np.pi/2.0)
+            print(distance_line < tolerance)
+            print(" ")
+
             #       Ya avanzo una distancia ?     Tiene obstaculos a la vista ?     Esta cerca de la ruta ?
             if self.d_t < (self.D_Fw - progress) and theta_clear_shot < np.pi/2.0 and distance_line < tolerance:
                self.change_state("GTG")
@@ -102,12 +107,12 @@ class Bug2():
    #?#********** MANEJO DE ESTADOS #?#**********
    def change_state(self,state):
       self.current_state = state
-      self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW
-      print(self.D_Fw)
       if self.current_state == "GTG":
          self.gtg_topic.publish(True)
          self.fw_topic.publish(False)
       if self.current_state == "FW":
+         self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW
+         print("Distancia: " ,self.D_Fw)
          self.gtg_topic.publish(False)
          self.fw_topic.publish(True)
 
