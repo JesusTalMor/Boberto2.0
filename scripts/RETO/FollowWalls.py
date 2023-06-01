@@ -62,7 +62,7 @@ class FollowWalls():
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
-        self.goal_received = False
+        # self.goal_received = False
         rate.sleep() 
         continue
 
@@ -134,10 +134,10 @@ class FollowWalls():
     side = True if R < 0.3 else False
     # Wall on the Right Side
     if side is True:
-      control = 0.1 if R < 0.20 else -0.0
+      control = 0.15 if R < 0.20 else -0.0
     # Wall on the Left Side
     else:
-      control = -0.1 if L < 0.20 else 0.0
+      control = -0.15 if L < 0.20 else 0.0
     vel_msg.angular.z = control
     # vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
