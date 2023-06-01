@@ -35,8 +35,8 @@ class GoToGoal():
     self.target = Point()
     self.goal_received = True
 
-    self.initial_angle_precision = np.pi/80.0 # goal tolerance +/- error 2
-    self.angle_precision = np.pi/4.0 # goal tolerance +/- error 2    
+    self.initial_angle_precision = (np.pi/180.0) * 5.0  # goal tolerance +/- error 2
+    self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
     self.distance_precision = 0.1 # goal tolerance
 
     rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
@@ -77,7 +77,8 @@ class GoToGoal():
     vel_msg = Twist()
 
     if np.abs(error_theta) > self.initial_angle_precision:
-      vel_msg.angular.z = 0.4 if error_theta > 0 else -0.4
+      # vel_msg.angular.z = 0.4 if error_theta > 0 else -0.4
+      vel_msg.angular.z = 0.4
       vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)

@@ -67,7 +67,7 @@ class Bug2():
       while not rospy.is_shutdown(): 
          # El programa jala hasta que reciba un GOAL
          if self.goal_received is False:
-            rospy.loginfo_once("Esperando GOAL")
+            rospy.loginfo("Esperando GOAL")
             rate.sleep()
             continue
          
@@ -243,6 +243,12 @@ class Bug2():
 
    def cleanup(self):  
       '''This function is called just before finishing the node.'''
+      self.gtg_topic.publish(False)
+      self.fw_topic.publish(False)
+      self.gtg_active = False
+      self.fw_active = False
+      #* Detener el robot
+      self.done()
       print("Finish Message!!!")  
 
 ############################### MAIN PROGRAM ####################################  
