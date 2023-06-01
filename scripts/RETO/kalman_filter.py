@@ -42,13 +42,24 @@ class KalmanFilter:
     w_error : list [wr_e, wl_e] 
       Error de mediciones angulares de las llantas
     """
+    #?#********** ESTIMAR NUEVAS POSICIONES **********### 
     #* Desempaquetar las variables
     wr, wl = w_ruedas
     wr_e, wl_e = w_error
-    v = r * (wr+wl) / 2.0 # Velocidad Eje X m/s
-    w = r * (wr-wl) / L # Velocidad Eje Z rad/s
+    v = r * (wr+wl)/2.0 
+    w = r * (wr-wl)/L 
+
+    self._x[itheta] = self._x[itheta] + w * dt 
+    #Crop theta_r from -pi to pi 
+    self._x[itheta] = np.arctan2(np.sin(self._x[itheta]),np.cos(self._x[itheta])) 
     cos_theta = np.cos(self._x[itheta])
     sin_theta = np.sin(self._x[itheta])
+    vx = v*cos_theta 
+    vy = v*sin_theta
+
+    self._x[ix] = self._x[ix] + vx * dt 
+    self._x[iy] = self._x[iy] + vy * dt
+
 
     #?#********** CALCULAR MATRIX HACOBIANO **********###
     comp_h_1 = - dt * v * sin_theta
@@ -81,12 +92,6 @@ class KalmanFilter:
     #?#********** CALCULAR MATRIX COVARIANZA **********### 
     self._P = (H.dot(self._P).dot(H.T)) + Q
 
-    #?#********** ESTIMAR NUEVAS POSICIONES **********### 
-    self._x[ix] += v*cos_theta*dt
-    self._x[iy] += v*sin_theta*dt
-    theta = self._x[itheta] + w*dt
-    theta = np.arctan2(np.sin(theta), np.cos(theta))
-    self._x[itheta] = theta
   
   def update(self, aruco_coord, aruco_noise, aruco_diff):
     """ Actualizar las Predicciones del Filtro de Kalman 

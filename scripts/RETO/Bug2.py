@@ -60,7 +60,7 @@ class Bug2():
       goal_tolerance = 0.1
       #self.change_state("GTG")
 
-      rate = rospy.Rate(50) # The rate of the while loop will be 50Hz 
+      rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
       rospy.loginfo("Starting Message!")     
 
       ###******* PROGRAM BODY *******###  

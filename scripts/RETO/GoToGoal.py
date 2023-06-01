@@ -35,22 +35,25 @@ class GoToGoal():
     self.target = Point()
     self.goal_received = True
 
-    self.initial_angle_precision = (np.pi/180.0) * 5.0  # goal tolerance +/- error 2
-    self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
+    # self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
+    self.angle_precision = np.pi/8.0 
     self.distance_precision = 0.1 # goal tolerance
 
-    rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
+    rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
         # self.goal_received = False
+        rospy.loginfo("NODO APAGADO")
         self.current_state = "FIX"
         rate.sleep() 
         continue
 
       if self.goal_received is False: 
+        rospy.loginfo("ESPERANDO GOAL")
+        self.current_state = "FIX"
         rate.sleep() 
         continue
 
@@ -59,6 +62,7 @@ class GoToGoal():
       elif self.current_state == "GO":
         self.go_straight(self.robot_theta, self.target, self.robot_pos)
       elif self.current_state == "HERE":
+        rospy.logwarn("LLEGUE AL GOAL")
         self.done()
       elif self.current_state == "STOP":
         self.done()
@@ -69,27 +73,35 @@ class GoToGoal():
     # Calculate thetaGTG
     y_target = target.y
     x_target = target.x
-    thetaGTG = np.arctan2(y_target-robot_pos.y,x_target-robot_pos.y)
+    thetaGTG = np.arctan2(y_target-robot_pos.y,x_target-robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - robot_theta)
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
     # rospy.loginfo(error_theta)
-
-    vel_msg = Twist()
-
-    if np.abs(error_theta) > self.initial_angle_precision:
-      # vel_msg.angular.z = 0.4 if error_theta > 0 else -0.4
-      vel_msg.angular.z = 0.4
-      vel_msg.linear.x = 0.0
-
-    self.cmd_vel_pub.publish(vel_msg)
 
     # * To change state...
     if error_dist <= self.distance_precision:
       rospy.loginfo("Error distance: " + str(round(error_dist,2)))
       self.current_state = "HERE"
-    elif np.abs(error_theta) <= self.initial_angle_precision:
+      return
+    elif np.abs(error_theta) <= self.angle_precision:
       rospy.loginfo("Error theta: " + str(round(error_theta,2)))
       self.current_state = "GO"
+      return
+
+    vel_msg = Twist()
+    
+    kwmax = 0.6 #angular angular speed maximum gain 
+    aw = 2.0 #Constant to adjust the exponential's growth rate 
+
+    #Compute the robot's angular speed 
+    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) #Constant to change the speed  
+    w = kw*error_theta 
+    
+    vel_msg.angular.z = w
+    vel_msg.linear.x = 0.0
+
+    self.cmd_vel_pub.publish(vel_msg)
+
 
   def go_straight(self,robot_theta, target=Point(), robot_pos=Point()):
     # Calculate thetaGTG
@@ -100,15 +112,6 @@ class GoToGoal():
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
     # rospy.loginfo(error_theta)
 
-    vel_msg = Twist()
-
-    if error_dist > self.distance_precision:
-      vel_msg.linear.x = 0.2
-      vel_msg.angular.z = 0.0
-      # vel_msg.angular.z = 0.1 if error_theta > 0 else -0.1
-
-    self.cmd_vel_pub.publish(vel_msg)
-
     # * To change state...
     if error_dist <= self.distance_precision:
       rospy.loginfo("Error distance: " + str(round(error_dist,2)))
@@ -118,11 +121,31 @@ class GoToGoal():
       rospy.loginfo("Error theta: " + str(round(error_theta,2)))
       self.current_state = "FIX"
 
+    vel_msg = Twist()
+
+    kvmax = 0.4 #linear speed maximum gain  
+    kwmax = 0.6 #angular angular speed maximum gain 
+    av = 2.0 #Constant to adjust the exponential's growth rate   
+    aw = 2.0 #Constant to adjust the exponential's growth rate 
+
+    #Compute the robot's angular speed 
+    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) #Constant to change the speed  
+    w = kw*error_theta 
+    kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) #Constant to change the speed  
+    v=kv*error_dist #linear speed  
+    
+    vel_msg.angular.z = w
+    vel_msg.linear.x = v
+
+    self.cmd_vel_pub.publish(vel_msg)
+
+
   def done(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
     vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
+    self.goal_received = False
 
   def limit_angle(self,angle):
     return np.arctan2(np.sin(angle),np.cos(angle))

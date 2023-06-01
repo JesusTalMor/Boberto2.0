@@ -56,7 +56,7 @@ class FollowWalls():
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
-    rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
+    rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
