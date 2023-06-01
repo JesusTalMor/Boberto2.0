@@ -1,7 +1,7 @@
 #!/usr/bin/env python  
 import rospy  
 import numpy as np
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Twist
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import LaserScan
@@ -17,6 +17,8 @@ class Bug2():
       ###******* INIT PUBLISHERS *******###  
       rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
       rospy.Subscriber('/odom', Odometry, self.get_odom)
+      rospy.Subscriber('GOAL',Point, self.get_goal)
+      self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
       self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
       self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)    
 
@@ -27,11 +29,11 @@ class Bug2():
 
       # Definicion de punto inicial y goal
       self.initial_pos = Point()
-      self.initial_pos.x = 0.0
-      self.initial_pos.y = 0.0
       self.target = Point()
-      self.target.x = 5.0
-      self.target.y = 0.0
+      self.goal_received = False
+
+      self.gtg_active = False
+      self.fw_active = False
 
       # Definicion de estados
       self.current_state = "GTG"
@@ -50,10 +52,10 @@ class Bug2():
 
       # Variables
       progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
-      tolerance = 0.30 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
+      tolerance = 0.05 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
       self.d_t = 0.0
       self.D_Fw = 0.0
-
+      goal_tolerance = 0.05
       #self.change_state("GTG")
 
       rate = rospy.Rate(50) # The rate of the while loop will be 50Hz 
@@ -65,6 +67,20 @@ class Bug2():
          if self.region_recive is False:
             rate.sleep()
             continue
+
+         if self.goal_received is False:
+            rate.sleep()
+            continue
+
+         print(self.gtg_active)
+         print(self.fw_active)
+         if self.gtg_active is False and self.fw_active is False:
+            print("Entre una vez")
+            self.gtg_topic.publish(True)
+            self.fw_topic.publish(False)  
+            self.gtg_active = True
+            self.fw_active = True
+         
 
          # Calcula la distancia del robot a la linea
          distance_line = self.getDistanceLine(self.robot_pos)
@@ -78,11 +94,15 @@ class Bug2():
 
          # Distancia al goal
          self.d_t = np.sqrt((self.target.x-self.robot_pos.x)**2+(self.target.y-self.robot_pos.y)**2) 
-
-         if self.current_state == "GTG":
+         
+         if self.d_t < goal_tolerance:
+            self.change_state("STOP")
+            self.done()
+            self.goal_received = False
+            self.initial_pos = self.robot_pos
+         elif self.current_state == "GTG":
             # Si hay un obstaculo, cambia a comportamiento de FW
-            if self.Front > 0.30 and self.Front < 1.0:
-               
+            if self.Front > 0.30 and self.Front < 0.40:
                self.change_state("FW")
                print ("se cambio a fw")
          elif self.current_state == "FW":
@@ -110,11 +130,18 @@ class Bug2():
       if self.current_state == "GTG":
          self.gtg_topic.publish(True)
          self.fw_topic.publish(False)
+         rospy.sleep(3)
       if self.current_state == "FW":
          self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW
          print("Distancia: " ,self.D_Fw)
          self.gtg_topic.publish(False)
          self.fw_topic.publish(True)
+         self.gtg_active = False
+         self.fw_active = True
+      if self.current_state == "STOP":
+         self.gtg_topic.publish(False)
+         self.fw_topic.publish(False)
+
 
    #?# ********** CALLBACKS #?#**********
    def get_lidar_cb(self,msg):
@@ -142,6 +169,10 @@ class Bug2():
       )
       euler = euler_from_quaternion(quaternion)
       self.robot_theta = euler[2]
+
+   def get_goal(self, msg=Point()):
+      self.target = msg
+      self.goal_received = True
    
    #?# ********** COMPORTAMIENTOS #?#**********
    def get_theta_ao(self, theta_closest): 
@@ -169,6 +200,12 @@ class Bug2():
       return up / down
 
    #?# ********** CLEAN #?#**********
+   def done(self):
+    vel_msg = Twist()
+    vel_msg.linear.x = 0.0
+    vel_msg.angular.z = 0.0
+    self.cmd_vel_pub.publish(vel_msg)
+
    def cleanup(self):  
       '''This function is called just before finishing the node.'''
       print("Finish Message!!!")  

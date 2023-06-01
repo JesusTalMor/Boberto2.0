@@ -15,13 +15,14 @@ class GoToGoal():
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
     rospy.Subscriber('gtg_topic', Bool, self.gtg_Switch)
+    rospy.Subscriber('GOAL',Point, self.get_goal)
   
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = True
+    self.active = False
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -32,12 +33,11 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 5.0
-    self.target.y = 0.0
+    self.goal_received = False
 
     self.initial_angle_precision = np.pi/90.0 # goal tolerance +/- error 2
     self.angle_precision = np.pi/4.0 # goal tolerance +/- error 2    
-    self.distance_precision = 0.05 # goal tolerance
+    self.distance_precision = 0.1 # goal tolerance
 
     rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
     rospy.loginfo("Starting Message!")     
@@ -45,6 +45,11 @@ class GoToGoal():
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
+        self.goal_received = False
+        rate.sleep() 
+        continue
+
+      if self.goal_received is False: 
         rate.sleep() 
         continue
 
@@ -110,6 +115,8 @@ class GoToGoal():
 
   def done(self):
     vel_msg = Twist()
+    vel_msg.linear.x = 0.0
+    vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
 
   def limit_angle(self,angle):
@@ -131,6 +138,10 @@ class GoToGoal():
 
   def gtg_Switch(self,msg):
     self.active = msg.data
+
+  def get_goal(self, msg):
+    self.target = msg
+    self.goal_received = True
     
 
   def cleanup(self):  

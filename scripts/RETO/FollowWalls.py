@@ -15,7 +15,7 @@ class FollowWalls():
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
     rospy.Subscriber("base_scan", LaserScan, self.get_ranges) 
-    rospy.Subscriber("goal", Point, self.get_goal)
+    rospy.Subscriber("GOAL", Point, self.get_goal)
     rospy.Subscriber('fw_topic', Bool, self.get_active)
     rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
 
@@ -23,7 +23,7 @@ class FollowWalls():
     self.active = False 
     self.lidar_received = False
     self.current_state = "FIND"
-    self.goal_received = True
+    self.goal_received = False
 
     #?#********** REGIONS OF INTEREST OF THE ROBOT **********#?#
     self.areas = {
@@ -53,8 +53,6 @@ class FollowWalls():
 
     # Define goal point
     self.target = Point()
-    self.target.x = 5.0
-    self.target.y = 0.0
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
@@ -64,6 +62,7 @@ class FollowWalls():
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
+        self.goal_received = False
         rate.sleep() 
         continue
 
