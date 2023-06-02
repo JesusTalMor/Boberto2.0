@@ -22,7 +22,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = True
+    self.active = False
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -33,7 +33,7 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = False
+    self.goal_received = True
 
     self.inital_angle_precision = (np.pi/180.0) * 2.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
@@ -119,7 +119,10 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    vel_msg.angular.z = 0.2 if error_theta > 0.0 else -0.2
+    # vel_w = 0.1 if error_theta > 0.0 else -0.1
+    # vel_w = vel_w if np.abs(error_theta) > self.inital_angle_precision else 0.0
+    # vel_msg.angular.z = vel_w
+    vel_msg.angular.z = 0.0
     vel_msg.linear.x = 0.2
 
     self.cmd_vel_pub.publish(vel_msg)

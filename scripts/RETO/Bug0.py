@@ -156,6 +156,7 @@ class Bug0():
             self.fw_topic.publish(False)
             self.gtg_active = True
             self.fw_active =  False
+            rospy.sleep(2)
 
         elif self.current_state == "FW":
             self.D_Fw= self.d_t
@@ -163,7 +164,7 @@ class Bug0():
             self.fw_topic.publish(True)
             self.gtg_active = False
             self.fw_active =  True
-            rospy.sleep(2   )
+            #rospy.sleep(2)
 
     #?# ********** COMPORTAMIENTOS #?#**********
     def get_theta_ao(self, theta_closest): 
@@ -200,7 +201,7 @@ class Bug0():
         return thetaFWC
     
     def clear_shot(self, thetaAO, thetaGTG):
-        if(abs(self.limit_angle(thetaAO-thetaGTG)<np.pi/2.0)):
+        if(np.abs(self.limit_angle(thetaAO-thetaGTG)) < np.pi/2.0):
             return True
         else:
             return False
