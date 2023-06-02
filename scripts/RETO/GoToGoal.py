@@ -21,7 +21,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False
+    self.active = True
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -32,7 +32,7 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = True
+    self.goal_received = False
 
     # self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
@@ -91,13 +91,13 @@ class GoToGoal():
 
     vel_msg = Twist()
     
-    kwmax = 0.6 #angular angular speed maximum gain 
+    kwmax = 1 #angular angular speed maximum gain 
     aw = 2.0 #Constant to adjust the exponential's growth rate 
 
     #Compute the robot's angular speed 
     kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
     w = kw*error_theta 
-    w = self.limit_vel(w,0.2)
+    w = self.limit_vel(w, 0.5)
     vel_msg.angular.z = w
     vel_msg.linear.x = 0.0
 
@@ -126,14 +126,14 @@ class GoToGoal():
     vel_msg = Twist()
 
     kvmax = 0.4 #linear speed maximum gain  
-    kwmax = 0.6 #angular angular speed maximum gain 
+    kwmax = 3.0 #angular angular speed maximum gain 
     av = 2.0 #Constant to adjust the exponential's growth rate   
     aw = 2.0 #Constant to adjust the exponential's growth rate 
 
     #Compute the robot's angular speed 
     kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
     w = kw*error_theta 
-    w = self.limit_vel(w,0.2)
+    w = self.limit_vel(w,0.4)
     kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     v=kv*error_dist #linear speed  
     v = self.limit_vel(v, 0.2)

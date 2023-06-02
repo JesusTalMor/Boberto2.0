@@ -94,7 +94,7 @@ class KalmanFilter:
 
   
   # def update(self, aruco_coord, aruco_noise, aruco_diff):
-  def update(self, aruco_coord, aruco_noise, aruco_med):
+  def update(self, aruco_coord, aruco_noise, aruco_med, aruco_diff):
     """ Actualizar las Predicciones del Filtro de Kalman 
     
     Parametros
@@ -107,8 +107,11 @@ class KalmanFilter:
         Valores de Fiducial Transform, Con X, Z y rotacion en Y
     """
     #?#********** CALCULAR MATRIX HACOBIANO **********###
-    delta_x = aruco_coord[ix] - self._x[ix]
-    delta_y = aruco_coord[iy] - self._x[iy]
+    # * Notas delta x y delta y son con mediciones del aruco no estimados
+    # delta_x = aruco_coord[ix] - self._x[ix]
+    delta_x = aruco_diff[ix]
+    delta_y = aruco_diff[iy]
+    # delta_y = aruco_coord[iy] - self._x[iy]
     phi = delta_x**2 + delta_y**2
     # Forma Matriz 2x3, 
     H = np.array([ 
@@ -133,10 +136,11 @@ class KalmanFilter:
     self._P = (np.eye(NUMVAR) - (K.dot(H))).dot(self._P)
 
     #?#********** ACTUALIZAR POSICIONES KALMAN **********###
-    componente_phi = np.sqrt(delta_x**2 + delta_y**2) 
-    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
+    dist_estimada = [aruco_coord[ix] - self._x[ix], aruco_coord[iy] - self._x[iy]]
+    componente_phi = np.sqrt(dist_estimada[ix]**2 + dist_estimada[iy]**2) 
+    componente_alpha = np.arctan2(dist_estimada[iy],dist_estimada[ix]) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
-    aruco_med[1] = aruco_med - self._x[itheta]
+    # aruco_med[1] = aruco_med[1] - self._x[itheta]
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + (K.dot(aruco_med - observacion_estimada))
     #* Limitar theta
@@ -201,7 +205,7 @@ class KFNode:
     KF = KalmanFilter() # Iniciar filtro de Kalaman
 
     ###******* INIT CONSTANTS/VARIABLES *******###  
-    rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
+    rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
     self.wl = 0.0
     self.wr = 0.0
     self.received_wl = False
@@ -221,8 +225,8 @@ class KFNode:
     #   "712" : (2.98, -1.19),
     # }
     self.POS_ARUCOS = {
-      "702" : (1.79, 0.0),
-      "701" : (1.79, 0.0)
+      # "702" : (1.79, -0.65),
+      "701" : (1.59, 0.0)
     }
     v = 0.0
     w = 0.0
@@ -243,9 +247,12 @@ class KFNode:
         wr = self.wr
         wl = self.wl
 
-        v = r * (wr+wl) / 2.0 # Velocidad Eje X m/s
-        w = r * (wr-wl) / L # Velocidad Eje Z rad/s
         KF.predict([wr,wl],[0.087, 0.087],dt)
+        x = KF.medidas[ix]
+        y = KF.medidas[iy]
+        theta = KF.medidas[itheta]
+        posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
+        rospy.loginfo("KALMAN POSITION PRED: " + str(posicion))
 
         #* Actualizar valor de tiempo
         init_time = current_time
@@ -261,13 +268,13 @@ class KFNode:
             aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
             aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
             aruco_diff = [
-              fiducial.transform.translation.z + 0.08, 
+              fiducial.transform.translation.z + 0.09, 
               - fiducial.transform.translation.x,
             ]
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2)
             angulo_aruco = np.arctan2(aruco_diff[iy], aruco_diff[ix])
             # print(distancia_aruco) 
-            aruco_med = [distancia_aruco, angulo_aruco]
+            aruco_med = np.array([distancia_aruco, angulo_aruco])
             # print("-----------")
             # print("Distancia x_robot: " + str(round(aruco_diff[ix], 4)))
             # print("Distancia y_robot: " + str(round(aruco_diff[iy], 4)))
@@ -276,7 +283,13 @@ class KFNode:
             # print("-----------")
             if 0.35 < distancia_aruco < 0.8:
               rospy.logwarn("Aruco Detected: Updating Position")
-              KF.update(aruco_pos, aruco_noise, aruco_med)
+              KF.update(aruco_pos, aruco_noise, aruco_med, aruco_diff)
+              #* Sacamos los datos del filtro de Kalman
+              x = KF.medidas[ix]
+              y = KF.medidas[iy]
+              theta = KF.medidas[itheta]
+              posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
+              rospy.logwarn("KALMAN POSITION UPDATE: " + str(posicion))
           
           self.fiducial_received = False
       
@@ -284,8 +297,8 @@ class KFNode:
       x = KF.medidas[ix]
       y = KF.medidas[iy]
       theta = KF.medidas[itheta]
-      posicion = [round(x,2), round(y,2), round(theta,2)]
-      rospy.loginfo("KALMAN POSITION: " + str(posicion))
+      # posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
+      # rospy.loginfo("KALMAN POSITION: " + str(posicion))
       covarianza = KF.covarianza
 
       odom = self.fill_odom(x, y, theta, covarianza, v, w)
