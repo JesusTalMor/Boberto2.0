@@ -22,7 +22,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False
+    self.active = True
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -33,11 +33,11 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = True
+    self.goal_received = False
 
     self.inital_angle_precision = (np.pi/180.0) * 2.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
-    self.distance_precision = 0.1 # goal tolerance
+    self.distance_precision = 0.05 # goal tolerance
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("STARTING GO TO GOAL")     
