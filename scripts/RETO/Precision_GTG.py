@@ -166,7 +166,7 @@ class GoToGoal():
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
-      print("FINISH MESSAGE STOPING ROBOT")  
+      print("FINISH MESSAGE STOPPING ROBOT")  
       vel_msg = Twist()
       self.cmd_vel_pub.publish(vel_msg)
 

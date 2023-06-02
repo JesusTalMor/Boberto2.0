@@ -7,8 +7,7 @@ from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
-  """ Clase para implementar un GO TO GOAL
-  """
+  """ PUT PEPA HAPPY """
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
@@ -40,19 +39,19 @@ class GoToGoal():
     self.distance_precision = 0.1 # goal tolerance
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
-    rospy.loginfo("Starting Message!")     
+    rospy.loginfo("STARTING GTG NODE")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
         # self.goal_received = False
-        rospy.loginfo("NODO APAGADO")
+        rospy.logfatal("NODE OFF")
         self.current_state = "FIX"
         rate.sleep() 
         continue
 
       if self.goal_received is False: 
-        rospy.loginfo("ESPERANDO GOAL")
+        rospy.loginfo("WAITING GOAL")
         self.current_state = "FIX"
         self.done()
         rate.sleep() 
@@ -63,7 +62,7 @@ class GoToGoal():
       elif self.current_state == "GO":
         self.go_straight(self.robot_theta, self.target, self.robot_pos)
       elif self.current_state == "HERE":
-        rospy.logwarn("LLEGUE AL GOAL")
+        rospy.loginfo("GOAL REACHED - CHANGE TO WAIT GOAL")
         self.done()
       elif self.current_state == "STOP":
         self.done()
@@ -77,15 +76,16 @@ class GoToGoal():
     thetaGTG = np.arctan2(y_target-robot_pos.y,x_target-robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - robot_theta)
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
+    rospy.loginfo("TURN TO GOAL: " + str(round(error_theta,2)))
     # rospy.loginfo(error_theta)
 
     # * To change state...
     if error_dist <= self.distance_precision:
-      rospy.loginfo("Error distance: " + str(round(error_dist,2)))
+      rospy.logwarn("GOAL REACHED - CHANGE TO DONE")
       self.current_state = "HERE"
       return
     elif np.abs(error_theta) <= self.angle_precision:
-      rospy.loginfo("Error theta: " + str(round(error_theta,2)))
+      rospy.logwarn("ANGLE ADJUSTED - CHANGE TO GO")
       self.current_state = "GO"
       return
 
@@ -112,14 +112,15 @@ class GoToGoal():
     error_theta = self.limit_angle(thetaGTG - robot_theta)
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
     # rospy.loginfo(error_theta)
+    rospy.loginfo("REACHING GOAL: " + str(round(error_dist,2)))
 
     # * To change state...
     if error_dist <= self.distance_precision:
-      rospy.loginfo("Error distance: " + str(round(error_dist,2)))
+      rospy.logwarn("GOAL REACHED - CHANGE TO DONE")
       self.current_state = "HERE"
     
     elif np.abs(error_theta) > self.angle_precision:
-      rospy.loginfo("Error theta: " + str(round(error_theta,2)))
+      rospy.logwarn("ANGLE ERROR HUGE - CHANGE TO FIX")
       self.current_state = "FIX"
 
     vel_msg = Twist()
@@ -183,7 +184,7 @@ class GoToGoal():
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
-      print("Finish Message!!!")  
+      print("FINISH MESSAGE STOPPING ROBOT")  
       vel_msg = Twist()
       self.cmd_vel_pub.publish(vel_msg)
 

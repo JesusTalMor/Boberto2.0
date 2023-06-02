@@ -57,16 +57,18 @@ class FollowWalls():
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
-    rospy.loginfo("Starting Message!")     
+    rospy.loginfo("STARTING NODE FW")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
-        # self.goal_received = False
+        rospy.logfatal("NODE OFF")
+        self.current_state = "FIND"
         rate.sleep() 
         continue
 
       if self.goal_received is False:
+        rospy.loginfo("WAITING GOAL")
         rate.sleep()
         continue
 
@@ -279,7 +281,7 @@ class FollowWalls():
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
-      print("Finish Message!!!")  
+      print("FINISH MESSAGE STOPPING ROBOT")  
       vel_msg = Twist()
       self.cmd_vel_pub.publish(vel_msg)
 
