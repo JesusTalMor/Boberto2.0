@@ -137,7 +137,7 @@ class KalmanFilter:
     componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
     # ! Cambiar este aspecto final
-    aruco_med[1] = componente_alpha
+    # aruco_med[1] = componente_alpha
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + (K.dot(aruco_med - observacion_estimada))
     #* Limitar theta
@@ -153,36 +153,37 @@ class KalmanFilter:
     return self._P
 
 class Prueba:
-  lista_aruco = [
-    (4.87, 0.8),
-    (4.72, 0.72),
-    (4.69, 0.65)
-  ]
-  pos_aruco = (3,4)
-  ruido_aruco = (0.1, 0.02)
-  dt = 0.1
-  Qk = np.array([
-    [0.5, 0.01, 0.01],
-    [0.01, 0.5, 0.01],
-    [0.01, 0.01, 0.2]
-  ])
-  v = 1
-  w = 1
-  KF = KalmanFilter()
-  
-  for eval in lista_aruco:
-    print("PREDICCION")
-    print("---------------------------------------")
-    KF.predict(v,w,dt,Qk)
-    print("Posiciones: ", KF.medidas)
-    print("Covarianzas: ", KF.covarianza)
-    print("---------------------------------------\n\n")
-    print("ACTUALIZACION")
-    print("---------------------------------------")
-    KF.update(pos_aruco, ruido_aruco, eval)
-    print("Posiciones: ", KF.medidas)
-    print("Covarianzas: ", KF.covarianza)
-    print("---------------------------------------\n\n")
+  def __init__(self):
+    lista_aruco = [
+      (4.87, 0.8),
+      (4.72, 0.72),
+      (4.69, 0.65)
+    ]
+    pos_aruco = (3,4)
+    ruido_aruco = (0.1, 0.02)
+    dt = 0.1
+    Qk = np.array([
+      [0.5, 0.01, 0.01],
+      [0.01, 0.5, 0.01],
+      [0.01, 0.01, 0.2]
+    ])
+    v = 1
+    w = 1
+    KF = KalmanFilter()
+
+    for eval in lista_aruco:
+      print("PREDICCION")
+      print("---------------------------------------")
+      KF.predict(v,w,dt,Qk)
+      print("Posiciones: ", KF.medidas)
+      print("Covarianzas: ", KF.covarianza)
+      print("---------------------------------------\n\n")
+      print("ACTUALIZACION")
+      print("---------------------------------------")
+      KF.update(pos_aruco, ruido_aruco, eval)
+      print("Posiciones: ", KF.medidas)
+      print("Covarianzas: ", KF.covarianza)
+      print("---------------------------------------\n\n")
 
 
 
@@ -221,7 +222,7 @@ class KFNode:
     #   "712" : (2.98, -1.19),
     # }
     self.POS_ARUCOS = {
-      "702" : (2, 0.0)
+      "7010" : (1.69, 0.0)
     }
     v = 0.0
     w = 0.0
@@ -251,39 +252,35 @@ class KFNode:
         self.received_wl = False
         self.received_wr = False
       
-        #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
-        if self.fiducial_received is True:
-          #* Por cada Aruco detectado se hace un update
-          for fiducial in self.fiducial_data:
-            # prueba = FiducialTransform()
-            # prueba.object_error
-            roll, pitch, yaw = euler_from_quaternion([
-              fiducial.transform.rotation.x,
-              fiducial.transform.rotation.y,
-              fiducial.transform.rotation.z,
-              fiducial.transform.rotation.w,
-            ])
-            aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
-            aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
-            aruco_diff = [
-              fiducial.transform.translation.z + 0.08, 
-              - fiducial.transform.translation.x,
-            ]
-            distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-            aruco_med = [distancia_aruco, pitch]
-            if distancia_aruco < 0.8:
-              rospy.logwarn("Aruco Detected: Updating Position")
-              KF.update(aruco_pos, aruco_noise, aruco_med)
-          
-          self.fiducial_received = False
+      #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
+      if self.fiducial_received is True:
+        #* Por cada Aruco detectado se hace un update
+        for fiducial in self.fiducial_data:
+          # prueba = FiducialTransform()
+          # prueba.object_error
+          aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
+          aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
+          aruco_diff = [
+            fiducial.transform.translation.z + 0.08, 
+            - fiducial.transform.translation.x,
+          ]
+          distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2)
+          angulo_aruco = np.arctan2(aruco_diff[iy], aruco_diff[ix])
+          # print(distancia_aruco) 
+          aruco_med = [distancia_aruco, angulo_aruco]
+          if distancia_aruco < 0.8:
+            rospy.logwarn("Aruco Detected: Updating Position")
+            KF.update(aruco_pos, aruco_noise, aruco_med)
+        
+        self.fiducial_received = False
       
       #* Sacamos los datos del filtro de Kalman
       x = KF.medidas[ix]
       y = KF.medidas[iy]
       theta = KF.medidas[itheta]
       posicion = [round(x,2), round(y,2), round(theta,2)]
-      rospy.loginfo("Posicion Estimada: ")
-      rospy.loginfo(posicion)
+      rospy.loginfo("Posicion Estimada: " + str(posicion))
+      # rospy.loginfo(posicion)
       covarianza = KF.covarianza
 
       odom = self.fill_odom(x, y, theta, covarianza, v, w)

@@ -22,7 +22,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False
+    self.active = True
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -33,7 +33,7 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = True
+    self.goal_received = False
 
     # self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
@@ -54,6 +54,7 @@ class GoToGoal():
       if self.goal_received is False: 
         rospy.loginfo("ESPERANDO GOAL")
         self.current_state = "FIX"
+        self.done()
         rate.sleep() 
         continue
 
