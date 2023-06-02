@@ -49,9 +49,6 @@ class KalmanFilter:
     v = r * (wr+wl)/2.0 
     w = r * (wr-wl)/L 
 
-    self._x[itheta] = self._x[itheta] + w * dt 
-    #Crop theta_r from -pi to pi 
-    self._x[itheta] = np.arctan2(np.sin(self._x[itheta]),np.cos(self._x[itheta])) 
     cos_theta = np.cos(self._x[itheta])
     sin_theta = np.sin(self._x[itheta])
     vx = v*cos_theta 
@@ -60,6 +57,9 @@ class KalmanFilter:
     self._x[ix] = self._x[ix] + vx * dt 
     self._x[iy] = self._x[iy] + vy * dt
 
+    self._x[itheta] = self._x[itheta] + w * dt 
+    #Crop theta_r from -pi to pi 
+    self._x[itheta] = np.arctan2(np.sin(self._x[itheta]),np.cos(self._x[itheta])) 
 
     #?#********** CALCULAR MATRIX HACOBIANO **********###
     comp_h_1 = - dt * v * sin_theta
@@ -70,14 +70,14 @@ class KalmanFilter:
       [0, 0, 1]
     ])
 
-    #?#********** CALCULAR MATRIX RUIDO **********### 
-    #* Calcular Matrix sigma_ruido
+    # #?#********** CALCULAR MATRIX RUIDO **********### 
+    # #* Calcular Matrix sigma_ruido
     sigma_ruido = np.array([
       [(wr_e * np.abs(wr)), 0],
       [0, (wl_e * np.abs(wl))]
     ])
 
-    #* Calcular Hacobiano para ruido
+    # #* Calcular Hacobiano para ruido
     H_ruido = np.array([
       [cos_theta, cos_theta],
       [sin_theta, sin_theta],
@@ -86,14 +86,15 @@ class KalmanFilter:
     
     H_ruido = H_ruido * 0.5 * r * dt 
 
-    #* Calcular matrix Ruido Q
+    # #* Calcular matrix Ruido Q
     Q = H_ruido.dot(sigma_ruido).dot(H_ruido.T)
 
     #?#********** CALCULAR MATRIX COVARIANZA **********### 
     self._P = (H.dot(self._P).dot(H.T)) + Q
 
   
-  def update(self, aruco_coord, aruco_noise, aruco_diff):
+  # def update(self, aruco_coord, aruco_noise, aruco_diff):
+  def update(self, aruco_coord, aruco_noise, aruco_med):
     """ Actualizar las Predicciones del Filtro de Kalman 
     
     Parametros
@@ -112,7 +113,7 @@ class KalmanFilter:
     # Forma Matriz 2x3, 
     H = np.array([ 
       [-delta_x/np.sqrt(phi), -delta_y/np.sqrt(phi), 0],
-      [delta_y/np.sqrt(phi), -delta_x/np.sqrt(phi), -1]
+      [delta_y/phi, -delta_x/phi, -1]
     ])
     
     #?#********** CALCULAR MATRIZ Z **********###
@@ -133,13 +134,12 @@ class KalmanFilter:
 
     #?#********** ACTUALIZAR POSICIONES KALMAN **********###
     componente_phi = np.sqrt(delta_x**2 + delta_y**2) 
-    componente_alpha = np.arctan2(delta_y,delta_x) # - self._x[itheta] 
+    componente_alpha = np.arctan2(delta_y,delta_x) - self._x[itheta] 
     observacion_estimada = np.array([componente_phi, componente_alpha])
-    componente_phi = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
-    componente_alpha = np.arctan2(aruco_diff[iy],aruco_diff[ix]) # - aruco_diff[itheta]
-    observacion_aruco = np.array([componente_phi, componente_alpha])
+    # ! Cambiar este aspecto final
+    aruco_med[1] = componente_alpha
     # 3x1 + 3x2 * 2x1 = 3x1
-    self._x = self._x + K.dot(observacion_aruco - observacion_estimada)
+    self._x = self._x + (K.dot(aruco_med - observacion_estimada))
     #* Limitar theta
     theta = np.arctan2(np.sin(self._x[itheta]), np.cos(self._x[itheta]))
     self._x[itheta] = theta
@@ -151,6 +151,40 @@ class KalmanFilter:
   @property
   def covarianza(self):
     return self._P
+
+class Prueba:
+  lista_aruco = [
+    (4.87, 0.8),
+    (4.72, 0.72),
+    (4.69, 0.65)
+  ]
+  pos_aruco = (3,4)
+  ruido_aruco = (0.1, 0.02)
+  dt = 0.1
+  Qk = np.array([
+    [0.5, 0.01, 0.01],
+    [0.01, 0.5, 0.01],
+    [0.01, 0.01, 0.2]
+  ])
+  v = 1
+  w = 1
+  KF = KalmanFilter()
+  
+  for eval in lista_aruco:
+    print("PREDICCION")
+    print("---------------------------------------")
+    KF.predict(v,w,dt,Qk)
+    print("Posiciones: ", KF.medidas)
+    print("Covarianzas: ", KF.covarianza)
+    print("---------------------------------------\n\n")
+    print("ACTUALIZACION")
+    print("---------------------------------------")
+    KF.update(pos_aruco, ruido_aruco, eval)
+    print("Posiciones: ", KF.medidas)
+    print("Covarianzas: ", KF.covarianza)
+    print("---------------------------------------\n\n")
+
+
 
 class KFNode:  
   """ Nodo para el manejo de Odometria usando Filtro de Kalman"""
@@ -187,7 +221,7 @@ class KFNode:
     #   "712" : (2.98, -1.19),
     # }
     self.POS_ARUCOS = {
-      "702" : (1.2, 0.0)
+      "702" : (2, 0.0)
     }
     v = 0.0
     w = 0.0
@@ -234,12 +268,12 @@ class KFNode:
             aruco_diff = [
               fiducial.transform.translation.z + 0.08, 
               - fiducial.transform.translation.x,
-              pitch
             ]
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2) 
+            aruco_med = [distancia_aruco, pitch]
             if distancia_aruco < 0.8:
               rospy.logwarn("Aruco Detected: Updating Position")
-              KF.update(aruco_pos, aruco_noise, aruco_diff)
+              KF.update(aruco_pos, aruco_noise, aruco_med)
           
           self.fiducial_received = False
       

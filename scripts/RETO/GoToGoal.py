@@ -94,9 +94,9 @@ class GoToGoal():
     aw = 2.0 #Constant to adjust the exponential's growth rate 
 
     #Compute the robot's angular speed 
-    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) #Constant to change the speed  
+    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
     w = kw*error_theta 
-    
+    w = self.limit_vel(w,0.2)
     vel_msg.angular.z = w
     vel_msg.linear.x = 0.0
 
@@ -129,11 +129,12 @@ class GoToGoal():
     aw = 2.0 #Constant to adjust the exponential's growth rate 
 
     #Compute the robot's angular speed 
-    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) #Constant to change the speed  
+    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
     w = kw*error_theta 
-    kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) #Constant to change the speed  
+    w = self.limit_vel(w,0.2)
+    kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     v=kv*error_dist #linear speed  
-    
+    v = self.limit_vel(v, 0.2)
     vel_msg.angular.z = w
     vel_msg.linear.x = v
 
@@ -149,6 +150,13 @@ class GoToGoal():
 
   def limit_angle(self,angle):
     return np.arctan2(np.sin(angle),np.cos(angle))
+  
+  def limit_vel(self, vel, lim):
+    sign = 1 if vel > 0.0 else -1
+
+    vel = vel * sign if np.abs(vel) <= lim else lim * sign
+
+    return vel
 
   def get_odom(self, msg=Odometry()):
     # position
