@@ -260,7 +260,7 @@ class KFNode:
         self.received_wr = False
       
         #* Si detectamos un ARUCO, realizamos una actualizacion de Kalman
-        if self.fiducial_received is True:
+        if self.fiducial_received is True and not (wl == 0.0 or wr == 0.0):
           #* Por cada Aruco detectado se hace un update
           for fiducial in self.fiducial_data:
             # prueba = FiducialTransform()
