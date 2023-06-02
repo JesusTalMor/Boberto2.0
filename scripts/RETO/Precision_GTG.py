@@ -7,7 +7,8 @@ from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
-  """ PUT PEPA HAPPY """
+  """ Clase para implementar un GO TO GOAL
+  """
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
@@ -21,7 +22,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.robot_theta = 0.0
 
-    self.active = False
+    self.active = True
     self.current_state = "FIX"
     states = {
       "FIX" : "FIX_ANGLE",
@@ -32,14 +33,14 @@ class GoToGoal():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = True
+    self.goal_received = False
 
-    # self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
+    self.inital_angle_precision = (np.pi/180.0) * 2.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
     self.distance_precision = 0.1 # goal tolerance
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
-    rospy.loginfo("STARTING GTG NODE")     
+    rospy.loginfo("STARTING GO TO GOAL")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
@@ -51,7 +52,7 @@ class GoToGoal():
         continue
 
       if self.goal_received is False: 
-        rospy.loginfo("WAITING GOAL")
+        rospy.logwarn("WAIT GOAL")
         self.current_state = "FIX"
         self.done()
         rate.sleep() 
@@ -84,21 +85,14 @@ class GoToGoal():
       rospy.logwarn("GOAL REACHED - CHANGE TO DONE")
       self.current_state = "HERE"
       return
-    elif np.abs(error_theta) <= self.angle_precision:
+    elif np.abs(error_theta) <= self.inital_angle_precision:
       rospy.logwarn("ANGLE ADJUSTED - CHANGE TO GO")
       self.current_state = "GO"
       return
 
     vel_msg = Twist()
     
-    kwmax = 0.6 #angular angular speed maximum gain 
-    aw = 2.0 #Constant to adjust the exponential's growth rate 
-
-    #Compute the robot's angular speed 
-    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
-    w = kw*error_theta 
-    w = self.limit_vel(w,0.2)
-    vel_msg.angular.z = w
+    vel_msg.angular.z = 0.4 if error_theta > 0.0 else -0.4
     vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)
@@ -125,20 +119,8 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    kvmax = 0.4 #linear speed maximum gain  
-    kwmax = 0.6 #angular angular speed maximum gain 
-    av = 2.0 #Constant to adjust the exponential's growth rate   
-    aw = 2.0 #Constant to adjust the exponential's growth rate 
-
-    #Compute the robot's angular speed 
-    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
-    w = kw*error_theta 
-    w = self.limit_vel(w,0.2)
-    kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
-    v=kv*error_dist #linear speed  
-    v = self.limit_vel(v, 0.2)
-    vel_msg.angular.z = w
-    vel_msg.linear.x = v
+    vel_msg.angular.z = 0.2 if error_theta > 0.0 else -0.2
+    vel_msg.linear.x = 0.2
 
     self.cmd_vel_pub.publish(vel_msg)
 
