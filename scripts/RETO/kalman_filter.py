@@ -108,44 +108,43 @@ class KalmanFilter:
     """
     #?#********** CALCULAR MATRIX HACOBIANO **********###
     # * Notas delta x y delta y son con mediciones del aruco no estimados
-    # delta_x = aruco_coord[ix] - self._x[ix]
-    delta_x = aruco_diff[ix]
-    delta_y = aruco_diff[iy]
-    # delta_y = aruco_coord[iy] - self._x[iy]
+    delta_x = aruco_coord[ix] - self._x[ix]
+    #delta_x = aruco_diff[ix]
+    #delta_y = aruco_diff[iy]
+    delta_y = aruco_coord[iy] - self._x[iy]
     phi = delta_x**2 + delta_y**2
+
+    #calculate obsevational model
+    z_phi = np.sqrt(delta_x**2 + delta_y**2) 
+    z_alpha = np.arctan2(delta_y, delta_x) - self._x[itheta]
+    z_hat = np.array([
+      [z_phi],
+      [z_alpha]
+    ])
     # Forma Matriz 2x3, 
     H = np.array([ 
-      [-delta_x/np.sqrt(phi), -delta_y/np.sqrt(phi), 0],
-      [delta_y/phi, -delta_x/phi, -1]
+      [(-delta_x)/np.sqrt(phi), (-delta_y)/np.sqrt(phi), 0],
+      [delta_y/phi, (-delta_x)/phi, -1]
     ])
     
+
     #?#********** CALCULAR MATRIZ Z **********###
     Rk = np.array([
       [aruco_noise, 0],
       [0, aruco_noise]
     ])
     # 2x3 * 3x3 = 2x3 * 3x2 = 2x2 + 2x2
-    Z = H.dot(self._P).dot(H.T) + Rk
+    Z = (H.dot(self._P).dot(H.T)) + Rk
 
     #?#********** CALCULAR GANANCIA DE KALMAN **********###
     # 3x3 * 3x2 = 3x2 * 2x2 = 3x2
     K = self._P.dot(H.T).dot(np.linalg.inv(Z))
-
+    #?#********** CALCULATE NEW POSITIONS **************###
+    # 3x1 + 3x2 * 2x1 = 3x1
+    self._x = self._x + (K.dot(aruco_med - z_hat))
     #?#********** ACTUALIZAR COVARIANZA KALMAN **********###
     # 3x3 - 3x2 * 2x3 = 3x3 * 3x3 = 3x3  Correcto
     self._P = (np.eye(NUMVAR) - (K.dot(H))).dot(self._P)
-
-    #?#********** ACTUALIZAR POSICIONES KALMAN **********###
-    dist_estimada = [aruco_coord[ix] - self._x[ix], aruco_coord[iy] - self._x[iy]]
-    componente_phi = np.sqrt(dist_estimada[ix]**2 + dist_estimada[iy]**2) 
-    componente_alpha = np.arctan2(dist_estimada[iy],dist_estimada[ix]) - self._x[itheta] 
-    observacion_estimada = np.array([componente_phi, componente_alpha])
-    # aruco_med[1] = aruco_med[1] - self._x[itheta]
-    # 3x1 + 3x2 * 2x1 = 3x1
-    self._x = self._x + (K.dot(aruco_med - observacion_estimada))
-    #* Limitar theta
-    theta = np.arctan2(np.sin(self._x[itheta]), np.cos(self._x[itheta]))
-    self._x[itheta] = theta
 
   @property
   def medidas(self):
@@ -267,14 +266,15 @@ class KFNode:
             # prueba.object_error
             aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
             aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
-            aruco_diff = [
-              fiducial.transform.translation.z + 0.09, 
-              - fiducial.transform.translation.x,
-            ]
+            aruco_diff = np.array([
+              [fiducial.transform.translation.z + 0.09], 
+              [- fiducial.transform.translation.x]
+            ])
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2)
             angulo_aruco = np.arctan2(aruco_diff[iy], aruco_diff[ix])
             # print(distancia_aruco) 
-            aruco_med = np.array([distancia_aruco, angulo_aruco])
+            aruco_med = np.array([distancia_aruco],
+                                  [angulo_aruco])
             # print("-----------")
             # print("Distancia x_robot: " + str(round(aruco_diff[ix], 4)))
             # print("Distancia y_robot: " + str(round(aruco_diff[iy], 4)))
