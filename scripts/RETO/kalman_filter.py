@@ -3,9 +3,10 @@ import rospy
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Float32
-from fiducial_msgs.msg import FiducialTransformArray, FiducialTransform
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from fiducial_msgs.msg import FiducialTransformArray
+from tf.transformations import quaternion_from_euler
 from visualization_msgs.msg import Marker 
+from geometry_msgs.msg import Point
 
 
 import numpy as np
@@ -25,9 +26,9 @@ class KalmanFilter:
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
     self._x = np.zeros(NUMVAR) 
-    self._x[ix] = 0.6
+    self._x[ix] = 0.0
     self._x[iy] = 0.0
-    self._x[itheta] = np.pi/2.0
+    self._x[itheta] = 0.0
 
     # Matriz de Covarianza 3x3 Inicial en zeros
     self._P = np.zeros((NUMVAR,NUMVAR))
@@ -192,7 +193,8 @@ class KFNode:
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     #?#********** INIT PUBLISHERS #?#**********
     self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1) 
-    self.marker_pub = rospy.Publisher("perfect_marker", Marker, queue_size=1)    
+    self.marker_pub = rospy.Publisher("perfect_marker", Marker, queue_size=1)
+    self.position_pub = rospy.Publisher("position", Point, queue_size=1)    
     #?#********** SUSCRIPTORES **********###  
     rospy.Subscriber("wl", Float32, self.wl_cb ) 
     rospy.Subscriber("wr", Float32, self.wr_cb ) 
@@ -242,6 +244,8 @@ class KFNode:
         #* Hacer copia de variables wl y wr
         wr = self.wr
         wl = self.wl
+        v = r * (wr+wl)/2.0 
+        w = r * (wr-wl)/L 
 
         KF.predict([wr,wl],[0.087, 0.087],dt)
         x = KF.medidas[ix]
@@ -296,6 +300,10 @@ class KFNode:
       x = KF.medidas[ix]
       y = KF.medidas[iy]
       theta = KF.medidas[itheta]
+      robot_pose = Point()
+      robot_pose.x = x
+      robot_pose.y = y
+      robot_pose.z = theta
       # posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
       # rospy.loginfo("KALMAN POSITION: " + str(posicion))
       covarianza = KF.covarianza
@@ -304,6 +312,7 @@ class KFNode:
       marker = self.fill_marker_perfect(odom)
       self.odom_pub.publish(odom)  
       self.marker_pub.publish(marker)
+      self.position_pub.publish(robot_pose)
       rate.sleep()
 
   def wl_cb(self, msg): 

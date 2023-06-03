@@ -2,9 +2,7 @@
 import rospy  
 import numpy as np
 from geometry_msgs.msg import Twist, Point
-from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
-from tf.transformations import euler_from_quaternion
 
 class GoToGoal():  
   """ Clase para implementar un GO TO GOAL
@@ -13,14 +11,14 @@ class GoToGoal():
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
     ###******* INIT PUBLISHERS *******###  
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
-    rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
+    rospy.Subscriber('position', Point, self.get_odom) # Comes From KalmanFilter
     rospy.Subscriber('gtg_topic', Bool, self.gtg_Switch)
     rospy.Subscriber('GOAL',Point, self.get_goal)
   
     ###******* INIT CONSTANTS/VARIABLES *******###  
     # Posicion del Robot
     self.robot_pos = Point()
-    self.robot_theta = 0.0
+    self.odom_received = False
 
     self.active = False
     self.current_state = "FIX"
@@ -35,50 +33,61 @@ class GoToGoal():
     self.target = Point()
     self.goal_received = True
 
-    self.inital_angle_precision = (np.pi/180.0) * 2.0 # goal tolerance +/- error 2    
-    self.angle_precision = np.pi/10.0 
+    self.inital_angle_precision = (np.pi/180.0) * 2.0 # Fix estate in 2 degrees    
+    self.angle_precision = (np.pi/180.0) * 45.0 # angle error 45 degrees
     self.distance_precision = 0.05 # goal tolerance
 
-    rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
-    rospy.loginfo("STARTING GO TO GOAL")     
+    rate = rospy.Rate(10) # The rate of the while loop will be 10 Hz
+    rospy.loginfo("STARTING GO TO GOAL NODE")     
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
-        # self.goal_received = False
         rospy.logfatal("NODE OFF")
         self.current_state = "FIX"
+        # self.stop_robot()
         rate.sleep() 
         continue
 
       if self.goal_received is False: 
         rospy.logwarn("WAIT GOAL")
         self.current_state = "FIX"
-        self.done()
+        self.stop_robot()
         rate.sleep() 
         continue
 
+      if self.odom_received is False:
+        rospy.logwarn("NO ODOM")
+        rate.sleep()
+        continue
+
+
       if self.current_state == "FIX":
-        self.fix_angle(self.robot_theta, self.target, self.robot_pos)
+        self.fix_angle(self.target, self.robot_pos)
+      
       elif self.current_state == "GO":
-        self.go_straight(self.robot_theta, self.target, self.robot_pos)
+        self.go_straight(self.target, self.robot_pos)
+      
       elif self.current_state == "HERE":
         rospy.loginfo("GOAL REACHED - CHANGE TO WAIT GOAL")
-        self.done()
+        self.stop_robot()
+        self.goal_received = False
+      
       elif self.current_state == "STOP":
-        self.done()
+        self.stop_robot()
 
+      self.odom_received = False
       rate.sleep() 
 
-  def fix_angle(self, robot_theta, target=Point(), robot_pos=Point()):
+  def fix_angle(self, target=Point(), robot_pos=Point()):
     # Calculate thetaGTG
-    y_target = target.y
     x_target = target.x
+    y_target = target.y
+    robot_theta = robot_pos.z
     thetaGTG = np.arctan2(y_target-robot_pos.y,x_target-robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - robot_theta)
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
     rospy.loginfo("TURN TO GOAL: " + str(round(error_theta,2)))
-    # rospy.loginfo(error_theta)
 
     # * To change state...
     if error_dist <= self.distance_precision:
@@ -91,17 +100,23 @@ class GoToGoal():
       return
 
     vel_msg = Twist()
+    kwmax = 5.0  #angular angular speed maximum gain 
+    aw = 5.0 #Constant to adjust the exponential's growth rate 
+    kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
+    w = kw * 0.4 if error_theta > 0.0 else kw * -0.4
+    w = self.limit_vel(w, 0.4)
     
-    vel_msg.angular.z = 0.3 if error_theta > 0.0 else -0.3
+    vel_msg.angular.z = w
     vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)
 
 
-  def go_straight(self,robot_theta, target=Point(), robot_pos=Point()):
+  def go_straight(self, target=Point(), robot_pos=Point()):
     # Calculate thetaGTG
     y_target = target.y
     x_target = target.x
+    robot_theta = robot_pos.z
     thetaGTG = np.arctan2(y_target-robot_pos.y,x_target-robot_pos.x)
     error_theta = self.limit_angle(thetaGTG - robot_theta)
     error_dist = np.sqrt(pow(y_target-robot_pos.y,2)+pow(x_target-robot_pos.x,2))
@@ -119,18 +134,13 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    # vel_w = 0.1 if error_theta > 0.0 else -0.1
-    # vel_w = vel_w if np.abs(error_theta) > 0.1 else 0.0
-    # vel_msg.angular.z = vel_w
-    # # vel_msg.angular.z = 0.0
-    # vel_msg.linear.x = 0.2
-    kvmax = 0.4 #linear speed maximum gain  
-    kwmax = 3.0 #angular angular speed maximum gain 
-    av = 2.0 #Constant to adjust the exponential's growth rate   
-    aw = 2.0 #Constant to adjust the exponential's growth rate 
+    kvmax = 1.0  #linear speed maximum gain  
+    kwmax = 2.0  #angular angular speed maximum gain 
+    av = 5.0 #Constant to adjust the exponential's growth rate   
+    aw = 5.0 #Constant to adjust the exponential's growth rate 
 
     #Compute the robot's angular speed 
-    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
+    kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
     w = kw*error_theta 
     w = self.limit_vel(w,0.4)
     kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
@@ -142,41 +152,31 @@ class GoToGoal():
     self.cmd_vel_pub.publish(vel_msg)
 
 
-  def done(self):
+  def stop_robot(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
     vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
-    self.goal_received = False
 
   def limit_angle(self,angle):
     return np.arctan2(np.sin(angle),np.cos(angle))
   
   def limit_vel(self, vel, lim):
     sign = 1 if vel > 0.0 else -1
-
     vel = vel * sign if np.abs(vel) <= lim else lim * sign
 
     return vel
 
-  def get_odom(self, msg=Odometry()):
+  def get_odom(self, msg=Point()):
     # position
-    self.robot_pos = msg.pose.pose.position
-    
-    # Angulo
-    quaternion = (
-      msg.pose.pose.orientation.x,
-      msg.pose.pose.orientation.y,
-      msg.pose.pose.orientation.z,
-      msg.pose.pose.orientation.w
-    )
-    euler = euler_from_quaternion(quaternion)
-    self.robot_theta = euler[2]
+    if self.odom_received is False:
+      self.robot_pos = msg
+    self.odom_received = True
 
-  def gtg_Switch(self,msg):
+  def gtg_Switch(self,msg=Bool()):
     self.active = msg.data
 
-  def get_goal(self, msg):
+  def get_goal(self, msg=Point()):
     self.target = msg
     self.goal_received = True
     
