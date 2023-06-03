@@ -24,12 +24,11 @@ class KalmanFilter:
     """ Iniciar Filtro en Valores Base 
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
-    self._x = np.zeros(NUMVAR) 
-    self._x = np.reshape(self._x, (len(self._x), 1))
+    self._x = np.zeros(NUMVAR)
+    print(self._x)
     self._x[ix] = 0.6
     self._x[iy] = 0.0
     self._x[itheta] = np.pi/2.0
-
     # Matriz de Covarianza 3x3 Inicial en zeros
     self._P = np.zeros((NUMVAR,NUMVAR))
   
@@ -109,9 +108,12 @@ class KalmanFilter:
     """
     #?#********** CALCULAR MATRIX HACOBIANO **********###
     # * Notas delta x y delta y son con mediciones del aruco no estimados
+
+    miu = np.array([[self._x[ix]],
+                    [self._x[iy]],
+                    [self._x[itheta]]])
+
     delta_x = aruco_coord[ix] - self._x[ix]
-    #delta_x = aruco_diff[ix]
-    #delta_y = aruco_diff[iy]
     delta_y = aruco_coord[iy] - self._x[iy]
     phi = delta_x**2 + delta_y**2
 
@@ -139,9 +141,15 @@ class KalmanFilter:
     K = self._P.dot(G.T).dot(np.linalg.inv(Z))
     #?#********** CALCULATE NEW POSITIONS **************###
     # 3x1 + 3x2 * 2x1 = 3x1
-    self._x = self._x + (K.dot(aruco_med - z_hat))
-    #! Actualizar theta con otro crop
+    #self._x = self._x + (K.dot(aruco_med - z_hat))
+
+    miu = miu + (K.dot(aruco_med - z_hat))
+
+    self._x[ix] = miu[0][0]
+    self._x[iy] = miu[1][0]
+    self._x[itheta] = miu[2][0]
     self._x[itheta] = np.arctan2(np.sin(self._x[itheta]),np.cos(self._x[itheta])) 
+
     #?#********** ACTUALIZAR COVARIANZA KALMAN **********###
     # 3x3 - 3x2 * 2x3 = 3x3 * 3x3 = 3x3  Correcto
     self._P = (np.eye(NUMVAR) - (K.dot(G))).dot(self._P)
@@ -210,7 +218,6 @@ class KFNode:
         #* Hacer copia de variables wl y wr
         wr = self.wr
         wl = self.wl
-
         KF.predict([wr,wl],[0.087, 0.087],dt)
         x = KF.medidas[ix]
         y = KF.medidas[iy]
