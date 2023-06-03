@@ -25,7 +25,7 @@ class KalmanFilter:
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
     self._x = np.zeros(NUMVAR) 
-    self._x[ix] = 0
+    self._x[ix] = 1.20
     self._x[iy] = 0
     self._x[itheta] = 0
 
@@ -225,8 +225,12 @@ class KFNode:
     #   "712" : (2.98, -1.19),
     # }
     self.POS_ARUCOS = {
-      # "702" : (1.79, -0.65),
-      "701" : (1.59, 0.0)
+      "701" : (0.48, 3.15),
+      "702" : (3.06, 3.05),
+      "703" : (1.91, 5.44),
+      "704" : (1.43, 2.45),
+      "705" : (2.10, 0.60),
+      "706" : (1.44, 2.30),
     }
     v = 0.0
     w = 0.0
