@@ -25,9 +25,9 @@ class KalmanFilter:
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
     self._x = np.zeros(NUMVAR) 
-    self._x[ix] = 1.2
+    self._x[ix] = 0.6
     self._x[iy] = 0.0
-    self._x[itheta] = 0.0
+    self._x[itheta] = np.pi/2.0
 
     # Matriz de Covarianza 3x3 Inicial en zeros
     self._P = np.zeros((NUMVAR,NUMVAR))
@@ -271,8 +271,7 @@ class KFNode:
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2)
             angulo_aruco = np.arctan2(aruco_diff[iy], aruco_diff[ix])
             # print(distancia_aruco) 
-            aruco_med = np.array([distancia_aruco,
-                                  angulo_aruco])
+            aruco_med = np.array([distancia_aruco, angulo_aruco])
             # print("-----------")
             # print("Distancia x_robot: " + str(round(aruco_diff[ix], 4)))
             # print("Distancia y_robot: " + str(round(aruco_diff[iy], 4)))

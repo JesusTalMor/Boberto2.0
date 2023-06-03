@@ -23,7 +23,7 @@ class FollowWalls():
     self.active = False 
     self.lidar_received = False
     self.current_state = "FIND"
-    self.goal_received = False
+    self.goal_received = True
 
     #?#********** REGIONS OF INTEREST OF THE ROBOT **********#?#
     self.areas = {

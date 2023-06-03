@@ -68,6 +68,7 @@ class Bug2():
          # El programa jala hasta que reciba un GOAL
          if self.goal_received is False:
             rospy.loginfo("Esperando GOAL")
+            self.done()
             rate.sleep()
             continue
          
