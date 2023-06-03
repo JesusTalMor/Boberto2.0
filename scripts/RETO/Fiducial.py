@@ -31,12 +31,20 @@ class Fiducial():
     ###******* PROGRAM BODY *******###  
     while not rospy.is_shutdown(): 
       if self.fiducial_received is True:
+         dis = 3
          for fiducial in self.fiducial_data:
-            msg = Point()
-            msg.x = fiducial.transform.translation.z + 0.09
-            msg.y = -fiducial.transform.translation.x
-            msg.z =  fiducial.object_error  # Ruido de la medicion de los arucos
-            self.fiducial_pub.publish(msg)
+            aruco_diff = np.array([
+              fiducial.transform.translation.z + 0.09, 
+              - fiducial.transform.translation.x
+            ])
+            distancia_aruco = np.sqrt(aruco_diff[0]**2 + aruco_diff[1]**2)
+            if dis > distancia_aruco:
+               dis = distancia_aruco
+               msg = Point()
+               msg.x = fiducial.transform.translation.z + 0.09
+               msg.y = -fiducial.transform.translation.x
+               msg.z =  fiducial.object_error  # Ruido de la medicion de los arucos
+               self.fiducial_pub.publish(msg)
       rate.sleep() 
 
   def get_fiducial(self, msg_array = FiducialTransformArray()):
