@@ -25,9 +25,9 @@ class KalmanFilter:
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
     self._x = np.zeros(NUMVAR) 
-    self._x[ix] = 0
-    self._x[iy] = 0
-    self._x[itheta] = 0
+    self._x[ix] = 0.0
+    self._x[iy] = 0.0
+    self._x[itheta] = 0.0
 
     # Matriz de Covarianza 3x3 Inicial en zeros
     self._P = np.zeros((NUMVAR,NUMVAR))
