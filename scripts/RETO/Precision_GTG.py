@@ -37,7 +37,7 @@ class GoToGoal():
 
     self.inital_angle_precision = (np.pi/180.0) * 10.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/10.0 
-    self.distance_precision = 0.1 # goal tolerance
+    self.distance_precision = 0.05 # goal tolerance
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("STARTING GO TO GOAL")     
@@ -119,11 +119,25 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    vel_w = 0.1 if error_theta > 0.0 else -0.1
-    vel_w = vel_w if np.abs(error_theta) > 0.1 else 0.0
-    vel_msg.angular.z = vel_w
-    # vel_msg.angular.z = 0.0
-    vel_msg.linear.x = 0.2
+    # vel_w = 0.1 if error_theta > 0.0 else -0.1
+    # vel_w = vel_w if np.abs(error_theta) > 0.1 else 0.0
+    # vel_msg.angular.z = vel_w
+    # # vel_msg.angular.z = 0.0
+    # vel_msg.linear.x = 0.2
+    kvmax = 0.4 #linear speed maximum gain  
+    kwmax = 3.0 #angular angular speed maximum gain 
+    av = 2.0 #Constant to adjust the exponential's growth rate   
+    aw = 2.0 #Constant to adjust the exponential's growth rate 
+
+    #Compute the robot's angular speed 
+    kw = kwmax*(1-np.exp(-aw*error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
+    w = kw*error_theta 
+    w = self.limit_vel(w,0.4)
+    kv=kvmax*(1-np.exp(-av*error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
+    v=kv*error_dist #linear speed  
+    v = self.limit_vel(v, 0.2)
+    vel_msg.angular.z = w
+    vel_msg.linear.x = v
 
     self.cmd_vel_pub.publish(vel_msg)
 
