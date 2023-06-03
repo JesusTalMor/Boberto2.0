@@ -144,7 +144,7 @@ class GoToGoal:
     def get_goal(self, msg=Point()):
         self.target = msg
         self.goal_received = True
-
+ 
     def cleanup(self):  
         #This function is called just before finishing the node  
         # You can use it to clean things up before leaving  

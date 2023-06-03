@@ -25,6 +25,7 @@ class KalmanFilter:
       Por defecto todos los valores son 0,0 de inicio"""
     # Vector de Estados a Manejar 3x1
     self._x = np.zeros(NUMVAR) 
+    self._x = np.reshape(self._x, (len(self._x), 1))
     self._x[ix] = 0.6
     self._x[iy] = 0.0
     self._x[itheta] = np.pi/2.0
@@ -81,7 +82,7 @@ class KalmanFilter:
     H_ruido = np.array([
       [cos_theta, cos_theta],
       [sin_theta, sin_theta],
-      [2/L, -2/L]
+      [2.0/L, -2.0/L]
     ])
     
     H_ruido = H_ruido * 0.5 * r * dt 
@@ -117,13 +118,13 @@ class KalmanFilter:
     #calculate obsevational model
     z_phi = np.sqrt(delta_x**2 + delta_y**2) 
     z_alpha = np.arctan2(delta_y, delta_x) - self._x[itheta]
-    z_hat = np.array([z_phi,z_alpha])
+    z_hat = np.array([[z_phi],
+                      [z_alpha]])
     # Forma Matriz 2x3, 
-    H = np.array([ 
+    G = np.array([ 
       [(-delta_x)/np.sqrt(phi), (-delta_y)/np.sqrt(phi), 0],
       [delta_y/phi, (-delta_x)/phi, -1]
     ])
-    
 
     #?#********** CALCULAR MATRIZ Z **********###
     Rk = np.array([
@@ -131,17 +132,19 @@ class KalmanFilter:
       [0, aruco_noise]
     ])
     # 2x3 * 3x3 = 2x3 * 3x2 = 2x2 + 2x2
-    Z = (H.dot(self._P).dot(H.T)) + Rk
+    Z = (G.dot(self._P).dot(G.T)) + Rk
 
     #?#********** CALCULAR GANANCIA DE KALMAN **********###
     # 3x3 * 3x2 = 3x2 * 2x2 = 3x2
-    K = self._P.dot(H.T).dot(np.linalg.inv(Z))
+    K = self._P.dot(G.T).dot(np.linalg.inv(Z))
     #?#********** CALCULATE NEW POSITIONS **************###
     # 3x1 + 3x2 * 2x1 = 3x1
     self._x = self._x + (K.dot(aruco_med - z_hat))
+    #! Actualizar theta con otro crop
+    self._x[itheta] = np.arctan2(np.sin(self._x[itheta]),np.cos(self._x[itheta])) 
     #?#********** ACTUALIZAR COVARIANZA KALMAN **********###
     # 3x3 - 3x2 * 2x3 = 3x3 * 3x3 = 3x3  Correcto
-    self._P = (np.eye(NUMVAR) - (K.dot(H))).dot(self._P)
+    self._P = (np.eye(NUMVAR) - (K.dot(G))).dot(self._P)
 
   @property
   def medidas(self):
@@ -150,41 +153,6 @@ class KalmanFilter:
   @property
   def covarianza(self):
     return self._P
-
-class Prueba:
-  def __init__(self):
-    lista_aruco = [
-      (4.87, 0.8),
-      (4.72, 0.72),
-      (4.69, 0.65)
-    ]
-    pos_aruco = (3,4)
-    ruido_aruco = (0.1, 0.02)
-    dt = 0.1
-    Qk = np.array([
-      [0.5, 0.01, 0.01],
-      [0.01, 0.5, 0.01],
-      [0.01, 0.01, 0.2]
-    ])
-    v = 1
-    w = 1
-    KF = KalmanFilter()
-
-    for eval in lista_aruco:
-      print("PREDICCION")
-      print("---------------------------------------")
-      KF.predict(v,w,dt,Qk)
-      print("Posiciones: ", KF.medidas)
-      print("Covarianzas: ", KF.covarianza)
-      print("---------------------------------------\n\n")
-      print("ACTUALIZACION")
-      print("---------------------------------------")
-      KF.update(pos_aruco, ruido_aruco, eval)
-      print("Posiciones: ", KF.medidas)
-      print("Covarianzas: ", KF.covarianza)
-      print("---------------------------------------\n\n")
-
-
 
 class KFNode:  
   """ Nodo para el manejo de Odometria usando Filtro de Kalman"""
@@ -247,7 +215,7 @@ class KFNode:
         x = KF.medidas[ix]
         y = KF.medidas[iy]
         theta = KF.medidas[itheta]
-        # posicion = [x, y, theta]
+
         posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
         rospy.loginfo("KALMAN POSITION PRED: " + str(posicion))
 
@@ -260,8 +228,6 @@ class KFNode:
         if self.fiducial_received is True and not (wl == 0.0 or wr == 0.0):
           #* Por cada Aruco detectado se hace un update
           for fiducial in self.fiducial_data:
-            # prueba = FiducialTransform()
-            # prueba.object_error
             aruco_pos = self.POS_ARUCOS[str(fiducial.fiducial_id)]
             aruco_noise = fiducial.object_error # Ruido de la medicion de los arucos
             aruco_diff = np.array([
@@ -271,7 +237,8 @@ class KFNode:
             distancia_aruco = np.sqrt(aruco_diff[ix]**2 + aruco_diff[iy]**2)
             angulo_aruco = np.arctan2(aruco_diff[iy], aruco_diff[ix])
             # print(distancia_aruco) 
-            aruco_med = np.array([distancia_aruco, angulo_aruco])
+            aruco_med = np.array([[distancia_aruco],
+                                  [angulo_aruco]])
             # print("-----------")
             # print("Distancia x_robot: " + str(round(aruco_diff[ix], 4)))
             # print("Distancia y_robot: " + str(round(aruco_diff[iy], 4)))
