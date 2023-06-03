@@ -74,6 +74,7 @@ class Bug0():
 
             if self.goal_recieved is False:
                 rospy.loginfo("Waiting for Goal")
+                self.done()
                 rate.sleep()
                 continue
 

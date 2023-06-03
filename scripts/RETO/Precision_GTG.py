@@ -35,7 +35,7 @@ class GoToGoal():
     self.target = Point()
     self.goal_received = False
 
-    self.inital_angle_precision = (np.pi/180.0) * 10.0 # goal tolerance +/- error 2    
+    self.inital_angle_precision = (np.pi/180.0) * 2.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/10.0 
     self.distance_precision = 0.1 # goal tolerance
 
@@ -92,7 +92,7 @@ class GoToGoal():
 
     vel_msg = Twist()
     
-    vel_msg.angular.z = 0.4 if error_theta > 0.0 else -0.4
+    vel_msg.angular.z = 0.3 if error_theta > 0.0 else -0.3
     vel_msg.linear.x = 0.0
 
     self.cmd_vel_pub.publish(vel_msg)
@@ -119,8 +119,8 @@ class GoToGoal():
 
     vel_msg = Twist()
 
-    vel_w = 0.1 if error_theta > 0.0 else -0.1
-    vel_w = vel_w if np.abs(error_theta) > 0.1 else 0.0
+    vel_w = 0.15 if error_theta > 0.0 else -0.15
+    vel_w = vel_w if np.abs(error_theta) > 0.15 else 0.0
     vel_msg.angular.z = vel_w
     # vel_msg.angular.z = 0.0
     vel_msg.linear.x = 0.2
