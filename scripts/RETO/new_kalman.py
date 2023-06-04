@@ -22,7 +22,7 @@ class KF_NODE():
         #?#********** SUBSCRIBERS #?#**********
         rospy.Subscriber("wl", Float32, self.get_wl)
         rospy.Subscriber("wr", Float32, self.get_wr)
-        rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, self.get_aruco)
+        rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, self.get_fiducial)
         
         # TODO Crear variables y constantes
         #?#********** VARIABLES #?#**********
@@ -41,9 +41,9 @@ class KF_NODE():
         w = 0.0 # Velocidad Angular [m/s]
 
         #?#*********** POSITION #?#***********
-        self.x = 0.0 # Posicion Inicial en X del Robot
+        self.x = 0.6 # Posicion Inicial en X del Robot
         self.y = 0.0 # Posicion Inicial en Y del Robot
-        self.theta = 0.0 # Orientacion Inicial en Z del Robot
+        self.theta = np.pi/2.0 # Orientacion Inicial en Z del Robot
 
         self.P = np.zeros([3,3]) # Matriz de Covarianza del Robot
 
@@ -55,10 +55,11 @@ class KF_NODE():
         self.aruco_detected = False
         self.POS_ARUCOS = {
             701: (0.48,3.15), 
-            702: (2.29,2.85),
-            703: (1.04,4.65),
+            702: (3.06,3.05),
+            703: (1.91,5.44),
             704: (1.43,2.45),
-            705: (1.20,0.98),
+            705: (2.1,0.6),
+            706: (1.44,2.3),
         }
 
         rospy.loginfo("STARTING KF NODE")
@@ -80,6 +81,7 @@ class KF_NODE():
                 self.predict(dt, [wr, wl], [0.087, 0.087], v, w) 
 
                 if self.aruco_detected is True:
+                    rospy.logwarn("ARUCO DETECTED UPDATE")
                     self.update()
                     self.aruco_detected = False
 
@@ -131,12 +133,9 @@ class KF_NODE():
         wr = w_llantas[0]
         wl = w_llantas[1]
 
-        sin_theta = np.sin(self.theta)
-        cos_theta = np.cos(self.theta)
-
         #?#********** CALCULAR MATRIZ DE HACOBIANO #?#********** 
-        comp_H1 = -dt * v * sin_theta
-        comp_H2 = dt * v * cos_theta
+        comp_H1 = -dt * v * np.sin(self.theta)
+        comp_H2 = dt * v * np.cos(self.theta)
         H = np.array([
             [1.0, 0.0, comp_H1  ],
             [0.0, 1.0, comp_H2  ],
@@ -149,19 +148,19 @@ class KF_NODE():
             [0.0, kl * abs(wl)]
         ])
         H_ruido = np.array([
-            [cos_theta, cos_theta],
-            [sin_theta, sin_theta],
+            [np.cos(self.theta), np.cos(self.theta)],
+            [np.sin(self.theta), np.sin(self.theta)],
             [2.0/L,        -2.0/L]
         ])
         H_ruido_mult = 0.5 * r * dt * H_ruido
-        Qk = H_ruido_mult.dot(S_ruido).dot(H_ruido_mult.T)
+        Qk = np.array(H_ruido_mult.dot(S_ruido).dot(H_ruido_mult.T))
 
         #?#********** CALCULAR COVARIANZA #?#**********
         self.P = np.array(H.dot(self.P).dot(H.T) + Qk)
 
         #?#********** CALCULAR NUEVAS POSICIONES #?#**********
-        self.x = self.x + dt * v * cos_theta
-        self.y = self.y + dt * v * sin_theta
+        self.x = self.x + dt * v * np.cos(self.theta)
+        self.y = self.y + dt * v * np.sin(self.theta)
         self.theta = self.theta + dt * w
         self.theta = self.crop_angle(self.theta)
     
@@ -181,14 +180,14 @@ class KF_NODE():
 
         #?#********** OBSERVACION ESTIMADA #?#**********
         z_rho_hat = np.sqrt(rho)
-        z_theta_hat = np.arctan(delta_y, delta_x) - self.theta
+        z_theta_hat = np.arctan2(delta_y, delta_x) - self.theta
         z_theta_hat = self.crop_angle(z_theta_hat)
         z_hat = np.array([
             [z_rho_hat],
             [z_theta_hat]
         ])
         #?#********** OBSERVACION ARUCO #?#**********
-        z_rho = np.sqrt(self.aruco_x**2 + self.aruco**2)
+        z_rho = np.sqrt(self.aruco_x**2 + self.aruco_y**2)
         z_theta = np.arctan2(self.aruco_y, self.aruco_x)
         z_aruco = np.array([
             [z_rho],
@@ -297,4 +296,7 @@ class KF_NODE():
 
 
 if __name__ == "__main__":
-    pass
+    rospy.init_node('KALMANFILTER') # Node Name
+    try: KF_NODE()  # Class Name
+    except rospy.ROSInterruptException:
+        rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")

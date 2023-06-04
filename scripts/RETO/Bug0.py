@@ -26,7 +26,16 @@ class Bug0():
         self.odom_received = False
 
         # Definicion de punto inicial y goal    
+        # GOAlS = [
+        #     (0.51, 2.08),
+        #     # (2.39, 4.77),
+        #     # (1.79, 3.57),
+        #     # (1.53, 1.30),
+        #     # (1.42, 0.21),
+        # ]
+        # GOAL_INDEX = 0
         self.target = Point()
+        # self.target.x, self.target.y = GOAlS[GOAL_INDEX]
         self.goal_recieved = False
     
         # Bandera para indicar que el lidar recibio datos 
@@ -37,6 +46,7 @@ class Bug0():
 
         # Definicion de estados
         self.current_state = "GTG"
+
 
         states = {
         "GTG" : "GO_TO_GOAL",
@@ -67,10 +77,17 @@ class Bug0():
                 self.fw_active = False
                 self.stop_robot()
                 rate.sleep()
+                # if GOAL_INDEX + 1 < len(GOAlS):
+                #     GOAL_INDEX += 1
+                #     self.target.x, self.target.y = GOAlS[GOAL_INDEX]
+                #     rospy.logwarn("GOING GOAL NUM. " + str(GOAL_INDEX))
+                #     self.goal_recieved = True
+                # else:
+                #     self.goal_recieved = False
                 continue
 
             if self.odom_received is False:
-                rospy.logwarn("NO ODOM")
+                # rospy.logwarn("NO ODOM")
                 rate.sleep()
                 continue
 
@@ -104,6 +121,7 @@ class Bug0():
             FW_progress = self.D_Fw - self.d_t
             
             #?#********** MAQUINA DE ESTADOS **********#?#
+            rospy.logerr("CURRENT GOAL: " + str(self.target.x) + "," + str(self.target.y))
             rospy.logerr("CURRENT STATE: " + str(self.current_state))
             rospy.loginfo("----------------------------------------------")
             rospy.loginfo("DISTANCE TO GOAL: " + str(round(self.d_t, 2)))
@@ -116,7 +134,7 @@ class Bug0():
                 self.change_state("STOP")
 
             elif self.current_state == "GTG":
-                if closest_dist < 0.40:
+                if closest_dist < 0.35:
                     print("WALL DETECTED - CHANGE TO FW")
                     self.change_state("FW")
 

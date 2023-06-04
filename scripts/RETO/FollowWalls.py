@@ -296,9 +296,9 @@ class FollowWalls():
     diff_theta = np.abs(diff_theta)
     # diff_theta = self.limit_angle(diff_theta)
     if diff_theta < np.pi/2.0:
-      return "T_RIGHTH"
-    else:
       return "T_LEFTH"
+    else:
+      return "T_RIGHTH"
   
   def limit_angle(self, angle):
     """Funcion para limitar de -PI a PI cualquier angulo de entrada"""
