@@ -36,7 +36,7 @@ class GoToGoal():
 
     # self.angle_precision = (np.pi/180.0) * 45.0 # goal tolerance +/- error 2    
     self.angle_precision = np.pi/8.0 
-    self.distance_precision = 0.1 # goal tolerance
+    self.distance_precision = 0.01 # goal tolerance
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("STARTING GTG NODE")     
