@@ -143,28 +143,19 @@ class FollowWalls():
     R = self.areas["Right"]
     L = self.areas["Left"]
     if R < 0.3:
-      error_dist = 0.30 - R
+      error_dist = 0.25 - R
       print("Distancia R: ", round(error_dist, 2))
     else:
-      error_dist = L - 0.30
+      error_dist = L - 0.25
       print("Distancia L: ", round(error_dist, 2))
       # * error_dist < 0 Girar derecha
       # * error_dist > 0 Girar Izquierda
-    # side = True if R < 0.3 else False
-    # error_dist = 0.25 - R if side is True else L - 0.25  
     kwmax = 1.0  #angular angular speed maximum gain 
     aw = 7.0 #Constant to adjust the exponential's growth rate 
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
-    w = kw * 0.3 if error_dist > 0.0 else kw * -0.3
-    w = self.limit_vel(w, 0.3)
-    # Wall on the Right Side
-    # if side is True:
-    #   control = 0.15 if R < 0.20 else -0.0
-    # # Wall on the Left Side
-    # else:
-    #   control = -0.15 if L < 0.20 else 0.0
+    w = kw * error_dist 
+    w = self.limit_vel(w, 0.2)
     vel_msg.angular.z = w
-    # vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
     vel_msg = Twist()
@@ -194,7 +185,7 @@ class FollowWalls():
     state_description = ""
     areas = self.areas 
 
-    distancia = 0.30
+    distancia = 0.25
     R = areas['Right'] < distancia
     FR = areas['FRight'] < distancia
     F = areas['Front'] < distancia
@@ -256,8 +247,7 @@ class FollowWalls():
   
   def get_odom(self, msg=Point()):
     # position
-    if self.odom_received is False:
-      self.robot_pos = msg
+    self.robot_pos = msg
     self.odom_received = True
   
   def get_closet_object(self, lidar_data=LaserScan()):
@@ -281,8 +271,7 @@ class FollowWalls():
     return theta_gtg
   
   def get_goal(self, msg=Point):
-    if self.goal_received is False:
-      self.target = msg
+    self.target = msg
     self.goal_received = True
   
   #?#********** HELPERS **********#?#
@@ -296,9 +285,9 @@ class FollowWalls():
     diff_theta = np.abs(diff_theta)
     # diff_theta = self.limit_angle(diff_theta)
     if diff_theta < np.pi/2.0:
-      return "T_LEFTH"
-    else:
       return "T_RIGHTH"
+    else:
+      return "T_LEFTH"
   
   def limit_angle(self, angle):
     """Funcion para limitar de -PI a PI cualquier angulo de entrada"""

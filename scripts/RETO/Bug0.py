@@ -16,19 +16,28 @@ class Bug0():
         ###******* INIT PUBLISHERS *******###  
         rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
         rospy.Subscriber('position', Point, self.get_odom)
-        rospy.Subscriber('GOAL', Point, self.get_goal)
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
         self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)
-        self.goal_status = rospy.Publisher('GOAL_REACHED', Bool, queue_size=1)  
+        self.goal_pub = rospy.Publisher('GOAL', Point, queue_size=1)
         ###******* INIT CONSTANTS/VARIABLES *******###  
         # Posicion del Robot
         self.robot_pos = Point()
         self.odom_received = False
 
         # Definicion de punto inicial y goal    
+        GOAL_ARRAY = [
+            (0.51, 2.08),
+            (2.39, 4.77),
+            (1.79, 3.57),
+            (1.53, 1.30),
+            (1.42, 0.21)
+        ]
+
+        GOAL_INDX = 0
         self.target = Point()
-        self.goal_recieved = True
+        self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+        self.goal_received = True
     
         # Bandera para indicar que el lidar recibio datos 
         self.lidar_data = LaserScan()
@@ -61,14 +70,19 @@ class Bug0():
         ###******* PROGRAM BODY *******###  
         while not rospy.is_shutdown(): 
             # * Whole Body of the Program
-            if self.goal_recieved is False:
+            if self.goal_received is False:
                 rospy.logwarn("WAIT GOAL")
                 self.gtg_topic.publish(False)
                 self.fw_topic.publish(False)
-                self.goal_status.publish(True)
                 self.gtg_active = False
                 self.fw_active = False
                 self.stop_robot()
+                if GOAL_INDX + 1 < len(GOAL_ARRAY):
+                    GOAL_INDX += 1
+                    self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+                    self.goal_received = True
+                else:
+                    rospy.logwarn("RUTINA COMPLETA")
                 rate.sleep()
                 continue
 
@@ -81,7 +95,6 @@ class Bug0():
                 rate.sleep()
                 continue
             
-            self.goal_status.publish(False)
             # * Si ambos estados estan en Falso iniciar con GTG
             if self.gtg_active is False and self.fw_active is False:
                 self.current_state = "GTG"
@@ -90,6 +103,7 @@ class Bug0():
                 self.gtg_active = True
                 self.fw_active = False
 
+            self.goal_pub.publish(self.target)
             # Closest object 
             closest_dist, closest_angle = self.get_closest_object(self.lidar_data)
 
@@ -150,7 +164,7 @@ class Bug0():
             self.gtg_active = False
             self.fw_active =  False
             self.stop_robot()
-            self.goal_recieved =  False
+            self.goal_received =  False
             self.initial_pos = self.robot_pos
 
         elif self.current_state == "GTG":
@@ -183,7 +197,7 @@ class Bug0():
     def get_goal(self, msg=Point()):
         # if self.goal_recieved is False:
         self.target = msg
-        self.goal_recieved = True
+        self.goal_received = True
     
     #?# ********** GETTERS **********#?#
     def get_closest_object(self,lidar_data = LaserScan()):

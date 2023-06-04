@@ -15,10 +15,10 @@ class Bug2():
       ###******* INIT PUBLISHERS *******###  
       rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
       rospy.Subscriber('position', Point, self.get_odom)
-      rospy.Subscriber('GOAL',Point, self.get_goal)
       self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
       self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
       self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)    
+      self.goal_pub = rospy.Publisher('GOAL', Point, queue_size=1)
 
       #?#******* INIT CONSTANTS/VARIABLES *******#?#  
       # Posicion del Robot
@@ -27,8 +27,18 @@ class Bug2():
 
       # Definicion de punto inicial y goal
       self.initial_pos = Point()
+      GOAL_ARRAY = [
+         (0.51, 2.08),
+         (2.39, 4.77),
+         (1.79, 3.57),
+         (1.53, 1.30),
+         (1.42, 0.21)
+      ]
+
+      GOAL_INDX = 0
       self.target = Point()
-      self.goal_received = False
+      self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+      self.goal_received = True
 
       # Banderas de estados
       self.lidar_data = LaserScan()
@@ -44,19 +54,13 @@ class Bug2():
          "S" : "STOP" 
       }
 
-      # Bandera para indicar cuando tenga datos del las regiones
-
-      # # Tiempo que se dura en un estado
-      # self.time = 0
-      # loop = 0
-
+      
       # Variables
       progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
-      tolerance = 0.05 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
+      tolerance = 0.1 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
       self.d_t = 0.0
       self.D_Fw = 0.0
-      goal_tolerance = 0.05
-      #self.change_state("GTG")
+      goal_tolerance = 0.02
 
       rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
       rospy.loginfo("Starting Message!")     
@@ -71,11 +75,17 @@ class Bug2():
             self.gtg_active = False
             self.fw_active = False
             self.stop_robot()
+            if GOAL_INDX + 1 < len(GOAL_ARRAY):
+               GOAL_INDX += 1
+               self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+               self.goal_received = True
+            else:
+               rospy.logwarn("RUTINA COMPLETA")
             rate.sleep()
             continue
 
          if self.odom_received is False:
-            rospy.logwarn("NO ODOM")
+            # rospy.logwarn("NO ODOM")
             rate.sleep()
             continue
          
@@ -92,6 +102,7 @@ class Bug2():
             self.gtg_active = True
             self.fw_active = False
 
+         self.goal_pub.publish(self.target)
          # Calcula la distancia del robot a la linea
          distance_line = self.get_distance_to_line(self.target, self.initial_pos, self.robot_pos)
 
@@ -114,6 +125,7 @@ class Bug2():
          
          #?#********** MAQUINA DE ESTADOS **********#?#
          rospy.logerr("CURRENT STATE: " + str(self.current_state))
+         rospy.loginfo("CURRENT GOAL: " + str(self.target.x) + "," + str(self.target.y))
          rospy.loginfo("----------------------------------------------")
          rospy.loginfo("DISTANCE TO GOAL: " + str(round(self.d_t, 2)))
          rospy.loginfo("FW PROGRESS: " + str(round(FW_progress,2)) + " | " + str(FW_progress >= progress))
@@ -181,20 +193,16 @@ class Bug2():
 
    #?# ********** CALLBACKS #?#**********
    def get_lidar_cb(self, msg=LaserScan()):
-      if self.region_received is False:
-         self.lidar_data = msg
-         self.region_received = True
+      self.lidar_data = msg
+      self.region_received = True
 
    def get_odom(self, msg=Point()):
-      # position
-      if self.odom_received is False:
-         self.robot_pos = msg
-         self.odom_received = True
+      self.robot_pos = msg
+      self.odom_received = True
 
    def get_goal(self, msg=Point()):
-      if self.goal_received is False:
-         self.target = msg
-         self.goal_received = True
+      self.target = msg
+      self.goal_received = True
    
    #?# ********** GETTERS **********#?#
    def get_closet_object(self, lidar_data=LaserScan()):
