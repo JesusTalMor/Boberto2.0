@@ -3,45 +3,17 @@ import rospy
 from geometry_msgs.msg import Twist, PoseStamped 
 from std_msgs.msg import Float32 
 from sensor_msgs.msg import LaserScan   #Lidar 
+from geometry_msgs.msg import Point
 import numpy as np 
-# Pruebas
-class Robot(): 
-    #This class implements the differential drive model of the robot 
-    def __init__(self): 
-        ############ ROBOT CONSTANTS ################  
-        self.r = 0.05 #wheel radius [m] 
-        self.L = 0.18 #wheel separation [m] 
-        ############ Variables ############### 
-        self.x = 0.0 #x position of the robot [m] 
-        self.y = 0.0 #y position of the robot [m] 
-        self.theta = 0.0 #angle of the robot [rad] 
-
-    def update_state(self, wr, wl, delta_t): 
-        #This function returns the robot's state 
-        #This functions receives the wheel speeds wr and wl in [rad/sec]  
-        # and returns the robot's state 
-        v = self.r * (wr+wl)/2 
-        w = self.r * (wr-wl)/self.L 
-        self.theta = self.theta + w * delta_t 
-        #Crop theta_r from -pi to pi 
-        self.theta = np.arctan2(np.sin(self.theta),np.cos(self.theta)) 
-        vx = v * np.cos(self.theta) 
-        vy = v * np.sin(self.theta) 
-
-        self.x=self.x+vx*delta_t  
-        self.y=self.y+vy*delta_t 
-
 
 class GoToGoal():
     '''This class will make the puzzlebot move to a given goal'''
     def __init__(self):  
         rospy.on_shutdown(self.cleanup) 
 
-        self.robot=Robot() #create an object of the Robot class 
-
         #?########### Variables ############### 
-        self.x_target= 0.01 #x position of the goal 
-        self.y_target= 4.0 #y position of the goal 
+        self.x_target= 0.0 #x position of the goal 
+        self.y_target= 0.0 #y position of the goal 
         self.goal_received = True   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         target_position_tolerance = 0.25 #target position tolerance [m] 
@@ -51,6 +23,9 @@ class GoToGoal():
         progress = 0.1
         v_msg=Twist() #Robot's desired speed  
 
+        self.robot_x = 0.0
+        self.robot_y = 0.0
+        self.robot_theta = 0.0
         self.wr = 0.0 #right wheel speed [rad/s] 
         self.wl = 0.0 #left wheel speed [rad/s] 
 
@@ -68,9 +43,10 @@ class GoToGoal():
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
         ############################### SUBSCRIBERS #####################################  
         rospy.Subscriber("wl", Float32, self.wl_cb)  
-        rospy.Subscriber("wr", Float32, self.wr_cb)  
-        rospy.Subscriber("move_base_simple/goal", PoseStamped, self.goal_cb) 
+        rospy.Subscriber("wr", Float32, self.wr_cb)   
         rospy.Subscriber("base_scan", LaserScan, self.laser_cb) 
+        rospy.Subscriber("position", Point, self.get_robot_pos)
+        rospy.SubscribeLr("GOAL", Point, self.get_goal)
 
         #?#********** INIT NODE **********###  
         freq = 50
@@ -86,18 +62,18 @@ class GoToGoal():
             if self.lidar_received:
                 # Calcular una nueva recta ? 
                 if self.calculate_line is True:
-                    A,B,C = self.get_eq_values(self.robot.x,self.robot.y,self.x_target,self.y_target)
+                    A,B,C = self.get_eq_values(self.robot_x,self.robot_y,self.x_target,self.y_target)
 
                 # Rango mas cercano al robot, angulo y distancia
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
                 # Calcula el angulo para evitar obstaculo
                 thetaAO = self.get_theta_ao(closest_angle)
                 # Calcula el angulo para rodear obstaculo 
-                thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
+                thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot_x, self.robot_y, self.robot_theta) 
                 # Distancia del robot al Goal
-                d_t=np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) 
+                d_t=np.sqrt((self.x_target-self.robot_x)**2+(self.y_target-self.robot_y)**2) 
                 # Distancia a la recta, generada
-                d_p2line = self.distance2line(A,B,C,self.robot.x,self.robot.y)
+                d_p2line = self.distance2line(A,B,C,self.robot_x,self.robot_y)
 
                 print("Distancia Mas Cercana: ",closest_range)
 
@@ -253,6 +229,7 @@ class GoToGoal():
         theta_fw = self.limit_angle(theta_fw)
 
         return theta_fw
+
     
     #?#********** COMPORTAMIENTOS #?#**********
     def compute_gtg_control(self, ed, e_theta): 
@@ -344,6 +321,15 @@ class GoToGoal():
         self.x_target = goal.pose.position.x 
         self.y_target = goal.pose.position.y 
         self.goal_received=1 
+
+    def get_goal(self, msg = Point()):
+        self.x_target = msg.x
+        self.y_target = msg.y
+
+    def get_robot_pos(self, msg = Point()):
+        self.robot_x = msg.x
+        self.robot_y = msg.y
+        self.robot_theta = msg.z
 
     def cleanup(self):  
         #This function is called just before finishing the node  
