@@ -150,11 +150,11 @@ class FollowWalls():
       print("Distancia L: ", round(error_dist, 2))
       # * error_dist < 0 Girar derecha
       # * error_dist > 0 Girar Izquierda
-    kwmax = 1.0  #angular angular speed maximum gain 
-    aw = 7.5 #Constant to adjust the exponential's growth rate 
+    kwmax = 10.0  #angular angular speed maximum gain 
+    aw = 10.0 #Constant to adjust the exponential's growth rate 
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     w = kw * error_dist 
-    w = self.limit_vel(w, 0.3)
+    w = self.limit_vel(w, 0.1)
     vel_msg.angular.z = w
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
