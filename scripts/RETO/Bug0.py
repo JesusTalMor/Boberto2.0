@@ -19,24 +19,16 @@ class Bug0():
         rospy.Subscriber('GOAL', Point, self.get_goal)
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
-        self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)  
+        self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)
+        self.goal_status = rospy.Publisher('GOAL_REACHED', Bool, queue_size=1)  
         ###******* INIT CONSTANTS/VARIABLES *******###  
         # Posicion del Robot
         self.robot_pos = Point()
         self.odom_received = False
 
         # Definicion de punto inicial y goal    
-        # GOAlS = [
-        #     (0.51, 2.08),
-        #     # (2.39, 4.77),
-        #     # (1.79, 3.57),
-        #     # (1.53, 1.30),
-        #     # (1.42, 0.21),
-        # ]
-        # GOAL_INDEX = 0
         self.target = Point()
-        # self.target.x, self.target.y = GOAlS[GOAL_INDEX]
-        self.goal_recieved = False
+        self.goal_recieved = True
     
         # Bandera para indicar que el lidar recibio datos 
         self.lidar_data = LaserScan()
@@ -57,7 +49,7 @@ class Bug0():
         progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
         self.d_t = 0.0
         self.D_Fw = 0.0
-        goal_tolance = 0.01
+        goal_tolance = 0.02
 
 
         rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
@@ -73,17 +65,11 @@ class Bug0():
                 rospy.logwarn("WAIT GOAL")
                 self.gtg_topic.publish(False)
                 self.fw_topic.publish(False)
+                self.goal_status.publish(True)
                 self.gtg_active = False
                 self.fw_active = False
                 self.stop_robot()
                 rate.sleep()
-                # if GOAL_INDEX + 1 < len(GOAlS):
-                #     GOAL_INDEX += 1
-                #     self.target.x, self.target.y = GOAlS[GOAL_INDEX]
-                #     rospy.logwarn("GOING GOAL NUM. " + str(GOAL_INDEX))
-                #     self.goal_recieved = True
-                # else:
-                #     self.goal_recieved = False
                 continue
 
             if self.odom_received is False:
@@ -94,7 +80,8 @@ class Bug0():
             if self.region_active is False:
                 rate.sleep()
                 continue
-
+            
+            self.goal_status.publish(False)
             # * Si ambos estados estan en Falso iniciar con GTG
             if self.gtg_active is False and self.fw_active is False:
                 self.current_state = "GTG"
@@ -183,20 +170,20 @@ class Bug0():
     
     #?# ********** CALLBACKS #?#**********    
     def get_lidar_cb(self, msg=LaserScan()):
-        if self.region_active is False:
-            self.lidar_data = msg
-            self.region_active = True
+        # if self.region_active is False:
+        self.lidar_data = msg
+        self.region_active = True
 
     def get_odom(self, msg=Point()):
         # position
-        if self.odom_received is False:
-            self.robot_pos = msg
-            self.odom_received = True
+        # if self.odom_received is False:
+        self.robot_pos = msg
+        self.odom_received = True
 
     def get_goal(self, msg=Point()):
-        if self.goal_recieved is False:
-            self.target = msg
-            self.goal_recieved = True
+        # if self.goal_recieved is False:
+        self.target = msg
+        self.goal_recieved = True
     
     #?# ********** GETTERS **********#?#
     def get_closest_object(self,lidar_data = LaserScan()):
