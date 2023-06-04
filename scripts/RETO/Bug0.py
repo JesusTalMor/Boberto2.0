@@ -58,7 +58,7 @@ class Bug0():
         progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
         self.d_t = 0.0
         self.D_Fw = 0.0
-        goal_tolance = 0.02
+        goal_tolance = 0.025
 
 
         rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
