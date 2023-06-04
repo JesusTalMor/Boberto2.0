@@ -97,6 +97,7 @@ class Bug2():
          # * Si ambos estados estan en Falso iniciar con GTG
          if self.gtg_active is False and self.fw_active is False:
             self.current_state = "GTG"
+            self.initial_pos = self.robot_pos
             self.gtg_topic.publish(True)
             self.fw_topic.publish(False)  
             self.gtg_active = True
@@ -180,7 +181,7 @@ class Bug2():
          self.fw_topic.publish(False)
          self.gtg_active = True
          self.fw_active = False
-         rospy.sleep(3)
+         rospy.sleep(5)
       
       elif self.current_state == "FW":
          self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW

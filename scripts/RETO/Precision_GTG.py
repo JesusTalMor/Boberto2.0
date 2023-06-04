@@ -74,7 +74,7 @@ class GoToGoal():
       kvmax = 1.0  #linear speed maximum gain  
       kwmax = 1.0  #angular angular speed maximum gain 
       av = 5.0 #Constant to adjust the exponential's growth rate   
-      aw = 5.0 #Constant to adjust the exponential's growth rate 
+      aw = 7.5 #Constant to adjust the exponential's growth rate 
 
       #Compute the robot's angular speed 
       kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
@@ -84,10 +84,15 @@ class GoToGoal():
         w = 0.0
         v = 0.0
       elif np.abs(error_theta) > self.angle_precision:
+        kwmax = 2.0  #angular angular speed maximum gain 
+        aw = 10.0 #Constant to adjust the exponential's growth rate 
+        kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
+        w = kw*error_theta 
+        print("Velocidad Angular Giro Cerrado: ", round(w))
         v = 0.0
       else:
         v=kv*error_dist #linear speed  
-      w = self.limit_vel(w,0.2)
+      w = self.limit_vel(w,0.25)
       v = self.limit_vel(v, 0.2)
       vel_msg.angular.z = w
       vel_msg.linear.x = v

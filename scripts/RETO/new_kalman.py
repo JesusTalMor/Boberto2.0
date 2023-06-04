@@ -41,7 +41,7 @@ class KF_NODE():
         w = 0.0 # Velocidad Angular [m/s]
 
         #?#*********** POSITION #?#***********
-        self.x = 0.6 # Posicion Inicial en X del Robot
+        self.x = 1.2 # Posicion Inicial en X del Robot
         self.y = 0.0 # Posicion Inicial en Y del Robot
         self.theta = np.pi/2.0 # Orientacion Inicial en Z del Robot
 

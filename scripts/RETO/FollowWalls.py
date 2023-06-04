@@ -137,24 +137,24 @@ class FollowWalls():
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.2
+    vel_msg.linear.x = 0.15
     # * Calcular giro de seguridad
     # What side are we following ?
     R = self.areas["Right"]
     L = self.areas["Left"]
-    if R < 0.3:
-      error_dist = 0.25 - R
+    if R <= 0.3:
+      error_dist = 0.30 - R
       print("Distancia R: ", round(error_dist, 2))
     else:
-      error_dist = L - 0.25
+      error_dist = L - 0.30
       print("Distancia L: ", round(error_dist, 2))
       # * error_dist < 0 Girar derecha
       # * error_dist > 0 Girar Izquierda
     kwmax = 1.0  #angular angular speed maximum gain 
-    aw = 7.0 #Constant to adjust the exponential's growth rate 
+    aw = 7.5 #Constant to adjust the exponential's growth rate 
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     w = kw * error_dist 
-    w = self.limit_vel(w, 0.2)
+    w = self.limit_vel(w, 0.3)
     vel_msg.angular.z = w
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
@@ -185,7 +185,7 @@ class FollowWalls():
     state_description = ""
     areas = self.areas 
 
-    distancia = 0.25
+    distancia = 0.30
     R = areas['Right'] < distancia
     FR = areas['FRight'] < distancia
     F = areas['Front'] < distancia
