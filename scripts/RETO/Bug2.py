@@ -140,7 +140,7 @@ class Bug2():
          
          elif self.current_state == "GTG":
             # Si hay un obstaculo, cambia a comportamiento de FW
-            if closest_dist <= 0.40:
+            if closest_dist <= 0.35:
                rospy.logwarn("WALL DETECTED - CHANGE TO FW")
                self.change_state("FW")
          
@@ -181,7 +181,7 @@ class Bug2():
          self.fw_topic.publish(False)
          self.gtg_active = True
          self.fw_active = False
-         rospy.sleep(5)
+         rospy.sleep(3)
       
       elif self.current_state == "FW":
          self.D_Fw = self.d_t # Guarda la distancia al goal cuando se hace el cambio de comportamiento a FW
