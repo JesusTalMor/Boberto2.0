@@ -14,7 +14,7 @@ class GoToGoal():
         #?########### Variables ############### 
         self.x_target= 0.0 #x position of the goal 
         self.y_target= 0.0 #y position of the goal 
-        self.goal_received = True   #flag to indicate if the goal has been received 
+        self.goal_received = False   #flag to indicate if the goal has been received 
         self.lidar_received = False #flag to indicate if the laser scan has been received 
         target_position_tolerance = 0.25 #target position tolerance [m] 
 
@@ -313,18 +313,11 @@ class GoToGoal():
         ## This function receives a the right wheel speed.  
         self.wr = wr.data  
 
-    def goal_cb(self, goal):  
-        ## This function receives a the goal from rviz.  
-        print("Goal received I'm moving to x= "+str(goal.pose.position.x)+" y= "+str(goal.pose.position.y)) 
-        self.current_state = "GoToGoal" 
-        # assign the goal position 
-        self.x_target = goal.pose.position.x 
-        self.y_target = goal.pose.position.y 
-        self.goal_received=1 
-
     def get_goal(self, msg = Point()):
         self.x_target = msg.x
         self.y_target = msg.y
+        self.goal_received = 1
+        self.current_state = "GoToGoal"
 
     def get_robot_pos(self, msg = Point()):
         self.robot_x = msg.x
