@@ -60,7 +60,7 @@ class Bug2():
       tolerance = 0.1 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
       self.d_t = 0.0
       self.D_Fw = 0.0
-      goal_tolerance = 0.02
+      goal_tolerance = 0.025
 
       rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
       rospy.loginfo("Starting Message!")     
