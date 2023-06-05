@@ -3,10 +3,10 @@
 <!-- * Follow walls node -->
 <node pkg='puzzlebot_sim' type='FollowWalls.py' name='WallFollower' output='log' />
 
-<!-- * GoToGoal node -->
+<!-- * GoToGoal node-->
 <node pkg='puzzlebot_sim' type='Precision_GTGB2.py' name='GTG_Bug0' output='log' />
 
-<!-- * GoToGoal node -->
-<node pkg='puzzlebot_sim' type='Bug0.py' name='Bug0' output='screen' />
+<!-- * GoToGoal node-->
+<node pkg='puzzlebot_sim' type='Bug2.py' name='Bug0' output='screen' />
 
 </launch>
