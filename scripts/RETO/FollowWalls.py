@@ -17,7 +17,7 @@ class FollowWalls():
     rospy.Subscriber("base_scan", LaserScan, self.get_ranges) 
     rospy.Subscriber("GOAL", Point, self.get_goal)
     rospy.Subscriber('fw_topic', Bool, self.get_active)
-    rospy.Subscriber('/odom', Odometry, self.get_odom) # Comes From KalmanFilter
+    rospy.Subscriber('position', Point, self.get_odom) # Comes From KalmanFilter
 
     #?#********** NODE MANAGER VARIABLES **********#?#
     self.active = False 
@@ -36,7 +36,6 @@ class FollowWalls():
     }
 
     states = {
-
       "FIND" : "Find The Wall",
       "T_LEFT" : "Turn Left corner",
       "T_RIGHT" : "Turn Right corner",
@@ -49,10 +48,11 @@ class FollowWalls():
     #?#********** ROBOT POSITION AND GOAL **********#?#
     # Posicion del Robot
     self.robot_pos = Point()
-    self.robot_theta = 0.0
+    self.odom_received = False
 
     # Define goal point
     self.target = Point()
+    self.goal_received = False
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
 
@@ -64,16 +64,25 @@ class FollowWalls():
       if self.active is False: 
         rospy.logfatal("NODE OFF")
         self.current_state = "FIND"
+        # self.stop_robot()
         rate.sleep() 
         continue
 
       if self.goal_received is False:
-        rospy.loginfo("WAITING GOAL")
+        rospy.loginfo("WAIT GOAL")
+        self.current_state = "FIND"
+        self.stop_robot()
+        rate.sleep()
+        continue
+
+      if self.odom_received is False:
+        rospy.logwarn("NO ODOM")
         rate.sleep()
         continue
 
       # if no lidar_received do nothing
       if self.lidar_received is False:
+        # rospy.logwarn("NO LIDAR DATA")
         rate.sleep() 
         continue
 
@@ -109,39 +118,44 @@ class FollowWalls():
   def turn_left_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = 0.4
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right_h(self):
     vel_msg = Twist()
     vel_msg.linear.x = 0.0
-    vel_msg.angular.z = -0.4
+    vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.07
-    vel_msg.angular.z = -0.5
+    vel_msg.linear.x = 0.05
+    vel_msg.angular.z = -0.45
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.07
-    vel_msg.angular.z = 0.5
+    vel_msg.linear.x = 0.05
+    vel_msg.angular.z = 0.45
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.2
+    vel_msg.linear.x = 0.15
     # * Calcular giro de seguridad
     # What side are we following ?
     R = self.areas["Right"]
     L = self.areas["Left"]
-    side = True if R < 0.3 else False
-    # Wall on the Right Side
-    if side is True:
-      control = 0.15 if R < 0.20 else -0.0
-    # Wall on the Left Side
+    if R <= 0.3:
+      error_dist = 0.30 - R
+      print("Distancia R: ", round(error_dist, 2))
     else:
-      control = -0.15 if L < 0.20 else 0.0
-    vel_msg.angular.z = control
-    # vel_msg.angular.z = 0.0
+      error_dist = L - 0.30
+      print("Distancia L: ", round(error_dist, 2))
+      # * error_dist < 0 Girar derecha
+      # * error_dist > 0 Girar Izquierda
+    kwmax = 10.0  #angular angular speed maximum gain 
+    aw = 10.0 #Constant to adjust the exponential's growth rate 
+    kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
+    w = kw * error_dist 
+    w = self.limit_vel(w, 0.1)
+    vel_msg.angular.z = w
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
     vel_msg = Twist()
@@ -166,17 +180,18 @@ class FollowWalls():
         "MIN_ANGLE" : self.get_closet_object(msg),
       }
       self.lidar_received = True
+  
   def get_state(self):
     state_description = ""
     areas = self.areas 
 
-    d_lateral = 0.30
-    d_diagonal = 0.30
-    R = areas['Right'] < d_lateral
-    FR = areas['FRight'] < d_diagonal
-    F = areas['Front'] < d_lateral
-    FL = areas['FLeft'] < d_diagonal
-    L = areas['Left'] < d_lateral
+    distancia = 0.30
+    R = areas['Right'] < distancia
+    FR = areas['FRight'] < distancia
+    F = areas['Front'] < distancia
+    FL = areas['FLeft'] < distancia
+    L = areas['Left'] < distancia
+    MIN_ANGLE = areas['MIN_ANGLE']
 
 
     # * Giro Forzoso Derecha
@@ -213,7 +228,7 @@ class FollowWalls():
     elif not F and not L and not FL and not FR and not R:
       state_description = "Find Wall"
       self.current_state = "FIND"
-      self.turn_decision = self.choose_side()
+      self.turn_decision = self.choose_side(MIN_ANGLE)
     
     # * Seguir muro
     elif not F:
@@ -226,58 +241,63 @@ class FollowWalls():
       self.current_state = self.turn_decision
     
     rospy.loginfo(state_description)
+
   def get_active(self, msg=Bool):
     self.active = msg.data
-  def get_odom(self, msg=Odometry()):
+  
+  def get_odom(self, msg=Point()):
     # position
-    self.robot_pos = msg.pose.pose.position
-    
-    # Angulo
-    quaternion = (
-      msg.pose.pose.orientation.x,
-      msg.pose.pose.orientation.y,
-      msg.pose.pose.orientation.z,
-      msg.pose.pose.orientation.w
-    )
-    euler = euler_from_quaternion(quaternion)
-    self.robot_theta = euler[2]
+    self.robot_pos = msg
+    self.odom_received = True
+  
   def get_closet_object(self, lidar_data=LaserScan()):
     """ This function returns the closest object to the robot
     This functions receives a ROS LaserScan message and returns the distance and direction to the closest object
     returns  closest_range [m], closest_angle [rad], 
     """ 
-    idx_low = 360
+    idx_low = 215
     idx_high = 931
-    data = lidar_data.ranges[360:931]
+    data = lidar_data.ranges[idx_low:idx_high]
     min_idx = np.argmin(data) 
-    closest_angle = lidar_data.angle_min + (min_idx + 360) * lidar_data.angle_increment 
+    closest_angle = lidar_data.angle_min + (min_idx + idx_low) * lidar_data.angle_increment 
     # limit the angle to [-pi, pi] 
     closest_angle = self.limit_angle(closest_angle) 
     return closest_angle 
+  
   def get_theta_goal(self):
     delta_y = self.target.y - self.robot_pos.y
     delta_x = self.target.x - self.robot_pos.x
     theta_gtg = np.arctan2(delta_y, delta_x)
     return theta_gtg
+  
   def get_goal(self, msg=Point):
     self.target = msg
     self.goal_received = True
+  
   #?#********** HELPERS **********#?#
-  def choose_side(self):
-    thetaAO = self.areas["MIN_ANGLE"] - np.pi
+  def choose_side(self, MIN_ANGLE):
+    thetaAO = MIN_ANGLE - np.pi
     thetaAO = self.limit_angle(thetaAO)
     thetaFW = thetaAO + np.pi/2.0
     thetaFW = self.limit_angle(thetaFW)
     theta_goal = self.get_theta_goal()
-    diff_theta = np.abs(thetaFW - theta_goal)
+    diff_theta = self.limit_angle(thetaFW - theta_goal)
+    diff_theta = np.abs(diff_theta)
     # diff_theta = self.limit_angle(diff_theta)
     if diff_theta < np.pi/2.0:
       return "T_RIGHTH"
     else:
       return "T_LEFTH"
+  
   def limit_angle(self, angle):
     """Funcion para limitar de -PI a PI cualquier angulo de entrada"""
     return np.arctan2(np.sin(angle), np.cos(angle))
+
+  def limit_vel(self, vel, lim):
+    sign = 1 if vel > 0.0 else -1
+    vel = vel * sign if np.abs(vel) <= lim else lim * sign
+    return vel
+
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
