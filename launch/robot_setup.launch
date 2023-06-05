@@ -1,0 +1,9 @@
+<launch>
+
+<!--Initialize the camera config-->
+<include file="$(find boberto)/launch/init_bobot.launch" />
+
+<!-- Initialize serial and lidar stuff -->
+<include file="$(find boberto)/launch/lidar_init.launch" />
+
+</launch>
