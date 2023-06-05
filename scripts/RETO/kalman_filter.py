@@ -175,7 +175,9 @@ class KFNode:
     rospy.Subscriber('/fiducial_transforms', FiducialTransformArray, self.get_fiducial)
     odom = Odometry() # Mensaje de odometria
     KF = KalmanFilter() # Iniciar filtro de Kalaman
-
+    x = 0.0
+    y = 0.0
+    theta = 0.0
     ###******* INIT CONSTANTS/VARIABLES *******###  
     rate = rospy.Rate(20) # The rate of the while loop will be 50Hz 
     self.wl = 0.0
@@ -266,9 +268,9 @@ class KFNode:
           self.fiducial_received = False
       
       #* Sacamos los datos del filtro de Kalman
-      x = KF.medidas[ix]
-      y = KF.medidas[iy]
-      theta = KF.medidas[itheta]
+      # x = KF.medidas[ix]
+      # y = KF.medidas[iy]
+      # theta = KF.medidas[itheta]
       # posicion = [round(x,2), round(y,2), round((theta*180.0/np.pi),2)]
       # rospy.loginfo("KALMAN POSITION: " + str(posicion))
       covarianza = KF.covarianza
