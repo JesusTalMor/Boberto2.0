@@ -112,7 +112,7 @@ class FollowWalls():
   #?#********** FOLLOW WALL BEHAVIOURS **********#?#
   def find_wall(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.2
+    vel_msg.linear.x = 0.05
     vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left_h(self):
