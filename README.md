@@ -1,4 +1,11 @@
 # Boberto2.0
+# Navegación Autónoma - Integración de Robótica y Sistemas Inteligentes
+> Mariana Castro Payns, Marcos Eduardo García Ortiz, Marcela Ibarra Mora, Jesús David Talamantes Morales
+
+> Instituto Tecnológico de Estudios Superiores de Monterrey, Campus Querétaro 
+
+> Contacto por orden de autor: A01231973@tec.mx,  A01706335@tec.mx, A01276213@tec.mx, A01706038@tec.mx.  
+
 
 Las aplicaciones de robótica y los sistemas digitales han crecido de manera exponencial a lo largo de los años. El nivel tecnológico se centra en dominios específicos como las interfaces entre humanos y robots, la movilidad, la manipulación, la programación y los sensores. La aplicación de estos conceptos en conjunto puede ser empleado para la resolución de retos específicos en diferentes áreas. 
 
