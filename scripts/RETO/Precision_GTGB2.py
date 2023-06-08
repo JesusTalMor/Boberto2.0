@@ -73,8 +73,8 @@ class GoToGoal():
 
       kvmax = 1.6  #linear speed maximum gain  
       kwmax = 3.2  #angular angular speed maximum gain 
-      av = 4.0 #Constant to adjust the exponential's growth rate   
-      aw = 4.0 #Constant to adjust the exponential's growth rate 
+      av = 1.5 #Constant to adjust the exponential's growth rate   
+      aw = 3.0 #Constant to adjust the exponential's growth rate 
 
       #Compute the robot's angular speed 
       kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
@@ -84,7 +84,7 @@ class GoToGoal():
         w = 0.0
         v = 0.0
       elif np.abs(error_theta) > self.angle_precision:
-        kwmax = 6.4  #angular angular speed maximum gain 
+        kwmax = 6.4 #angular angular speed maximum gain 
         aw = 6.0 #Constant to adjust the exponential's growth rate 
         kw = kwmax*(1 - np.exp(-aw * error_theta**2))/abs(error_theta) if error_theta != 0.0 else 0.0 #Constant to change the speed  
         w = kw*error_theta 

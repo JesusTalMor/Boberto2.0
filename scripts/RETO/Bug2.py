@@ -56,8 +56,8 @@ class Bug2():
 
       
       # Variables
-      progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
-      tolerance = 0.1 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
+      progress = 0.25 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
+      tolerance = 0.05 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
       self.d_t = 0.0
       self.D_Fw = 0.0
       goal_tolerance = 0.025
