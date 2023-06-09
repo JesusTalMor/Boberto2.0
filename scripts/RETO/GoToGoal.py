@@ -29,10 +29,13 @@ class GoToGoal():
       "HERE" : "ON_GOAL",
       "STOP" : "STOP"
     }
+    GOALS = [(1.2, 1.2), (1.2, 2.4)]
+    GOAL_IND = 0
 
     # Define goal point
     self.target = Point()
-    self.goal_received = False
+    self.target.x, self.target.y = GOALS[GOAL_IND]
+    self.goal_received = True
 
     self.angle_precision = (np.pi/180.0) * 20.0 # Rango de error de 20 grados
     self.distance_precision = 0.025 # Tolerancia a llegar al Goal
@@ -65,13 +68,17 @@ class GoToGoal():
       thetaGTG = np.arctan2(y_target-self.robot_pos.y,x_target-self.robot_pos.x)
       error_theta = self.limit_angle(thetaGTG - robot_theta)
       error_dist = np.sqrt(pow(y_target-self.robot_pos.y,2)+pow(x_target-self.robot_pos.x,2))
-      rospy.loginfo("REACHING GOAL: " + str(round(error_dist,2)))
+      rospy.loginfo("REACHING GOAL: " + str(round(error_dist,4)))
 
       if error_dist <= self.distance_precision:
         rospy.logwarn("GOAL REACHED")
-        self.goal_received == False
+        # self.goal_received = False
+        if GOAL_IND + 1 < len(GOALS): GOAL_IND += 1
+        else: GOAL_IND = 0
+        self.target.x ,self.target.y = GOALS[GOAL_IND]
 
       self.compute_GTG(error_theta, error_dist)
+      rate.sleep()
 
 
   #?#********** CALLBACKS #?#********** 
@@ -102,8 +109,8 @@ class GoToGoal():
         v = 0.0
       # * Si el error en theta es muy grande apuntar al goal
       elif np.abs(error_theta) > self.angle_precision:
-        kwmax = 3.2 #angular angular speed maximum gain 
-        aw = 1.6 #Constant to adjust the exponential's growth rate 
+        kwmax = 0.5 #angular angular speed maximum gain 
+        aw = 1.75 #Constant to adjust the exponential's growth rate 
         
         kw = self.compute_gain(kwmax, aw, error_theta)
 
@@ -111,20 +118,20 @@ class GoToGoal():
         v = 0.0
       #* Llegar al objetivo ajustando poco el angulo
       else:
-        kvmax = 1.6  #linear speed maximum gain  
-        kwmax = 3.2  #angular angular speed maximum gain 
-        av = 1.6 #Constant to adjust the exponential's growth rate   
-        aw = 1.6 #Constant to adjust the exponential's growth rate 
+        kvmax = 0.5 #linear speed maximum gain  
+        kwmax = 0.65  #angular angular speed maximum gain 
+        av = 0.5 #Constant to adjust the exponential's growth rate   
+        aw = 1.75 #Constant to adjust the exponential's growth rate 
 
         #Compute the robot's angular speed 
         kw = self.compute_gain(kwmax, aw, error_theta)
         kv = self.compute_gain(kvmax, av, error_dist)
         
         w = kw*error_theta 
-        v = kv*error_dist 
+        v = kv*error_dist + 0.1
       
-      w = self.limit_vel(w,0.5)
-      v = self.limit_vel(v, 0.5)
+      w = self.limit_vel(w, 0.8)
+      v = self.limit_vel(v, 0.8)
       
       vel_msg.angular.z = w
       vel_msg.linear.x = v
@@ -161,7 +168,6 @@ class GoToGoal():
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
       print("FINISH MESSAGE STOPPING ROBOT")  
-      vel_msg = Twist()
       self.stop_robot()
 
 ############################### MAIN PROGRAM ####################################  

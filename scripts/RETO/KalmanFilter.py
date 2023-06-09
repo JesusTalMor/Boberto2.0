@@ -41,9 +41,9 @@ class KF_NODE():
         w = 0.0 # Velocidad Angular [m/s]
 
         #?#*********** POSITION #?#***********
-        self.x = 0.0 # Posicion Inicial en X del Robot
+        self.x = 1.2 # Posicion Inicial en X del Robot
         self.y = 0.0 # Posicion Inicial en Y del Robot
-        self.theta = 0.0 # Orientacion Inicial en Z del Robot
+        self.theta = np.pi/2.0 # Orientacion Inicial en Z del Robot
 
         self.P = np.zeros([3,3]) # Matriz de Covarianza del Robot
 
@@ -57,7 +57,8 @@ class KF_NODE():
             701: (0.48,3.15), 
             702: (3.06,3.05),
             703: (1.91,5.44),
-            704: (1.43,2.45),
+            # 704: (1.43,2.45),
+            704 : (0.0, 0.0),
             705: (2.1,0.6),
             706: (1.44,2.3),
         }
