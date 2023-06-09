@@ -20,10 +20,9 @@ class FollowWalls():
     rospy.Subscriber('position', Point, self.get_odom) # Comes From KalmanFilter
 
     #?#********** NODE MANAGER VARIABLES **********#?#
-    self.active = False 
+    self.active = False
     self.lidar_received = False
     self.current_state = "FIND"
-    self.goal_received = True
 
     #?#********** REGIONS OF INTEREST OF THE ROBOT **********#?#
     self.areas = {
@@ -52,7 +51,7 @@ class FollowWalls():
 
     # Define goal point
     self.target = Point()
-    self.goal_received = False
+    self.goal_received = True
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
     self.FW_DISTANCE = 0.3
@@ -113,7 +112,7 @@ class FollowWalls():
   #?#********** FOLLOW WALL BEHAVIOURS **********#?#
   def find_wall(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.05
+    vel_msg.linear.x = 0.1
     vel_msg.angular.z = 0.0
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left_h(self):
@@ -128,18 +127,18 @@ class FollowWalls():
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.05
-    vel_msg.angular.z = -0.45
+    vel_msg.linear.x = 0.1
+    vel_msg.angular.z = -0.6
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.05
-    vel_msg.angular.z = 0.45
+    vel_msg.linear.x = 0.1
+    vel_msg.angular.z = 0.6
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
     vel_msg = Twist()
     
-    vel_msg.linear.x = 0.1
+    vel_msg.linear.x = 0.2
     # * Calcular giro de seguridad
     # What side are we following ?
     R = self.areas["Right"]
@@ -148,12 +147,12 @@ class FollowWalls():
     # * error_dist < 0 Girar derecha
     # * error_dist > 0 Girar Izquierda
     
-    kwmax = 10.0  #angular angular speed maximum gain 
-    aw = 10.0 #Constant to adjust the exponential's growth rate 
+    kwmax = 1.0  #angular angular speed maximum gain 
+    aw = 10.75 #Constant to adjust the exponential's growth rate 
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     w = kw * error_dist 
     
-    w = self.limit_vel(w, 0.1)
+    w = self.limit_vel(w, 0.4)
     
     vel_msg.angular.z = w
     
@@ -293,9 +292,9 @@ class FollowWalls():
     return np.arctan2(np.sin(angle), np.cos(angle))
 
   def limit_vel(self, vel, lim):
+    if np.abs(vel) > lim: rospy.logwarn("VELOCITY LIMITED")
     sign = 1 if vel > 0.0 else -1
     vel = vel if np.abs(vel) <= lim else lim * sign
-    if np.abs(vel) > lim: rospy.logwarn("VELOCITY LIMITED")
     return vel
 
 

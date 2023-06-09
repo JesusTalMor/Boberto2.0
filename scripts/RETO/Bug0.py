@@ -26,17 +26,18 @@ class Bug0():
         self.odom_received = False
 
         # Definicion de punto inicial y goal    
-        GOAL_ARRAY = [
-            (0.51, 2.08),
-            (2.39, 4.77),
-            (1.79, 3.57),
-            (1.53, 1.30),
-            (1.42, 0.21)
-        ]
+        # GOAL_ARRAY = [
+        #     (0.51, 2.08),
+        #     (2.39, 4.77),
+        #     (1.79, 3.57),
+        #     (1.53, 1.30),
+        #     (1.42, 0.21)
+        # ]
+        GOALS = [(1.2, 0.6), (1.2, 3.0)]
 
         GOAL_INDX = 0
         self.target = Point()
-        self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+        self.target.x, self.target.y = GOALS[GOAL_INDX]
         self.goal_received = True
     
         # Bandera para indicar que el lidar recibio datos 
@@ -77,12 +78,13 @@ class Bug0():
                 self.gtg_active = False
                 self.fw_active = False
                 self.stop_robot()
-                if GOAL_INDX + 1 < len(GOAL_ARRAY):
+                if GOAL_INDX + 1 < len(GOALS):
                     GOAL_INDX += 1
-                    self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
-                    self.goal_received = True
                 else:
                     rospy.logwarn("RUTINA COMPLETA")
+                    GOAL_INDX = 0
+                self.target.x, self.target.y = GOALS[GOAL_INDX]
+                self.goal_received = True
                 rate.sleep()
                 continue
 
@@ -135,7 +137,7 @@ class Bug0():
                 self.change_state("STOP")
 
             elif self.current_state == "GTG":
-                if closest_dist < 0.35:
+                if closest_dist < 0.5:
                     print("WALL DETECTED - CHANGE TO FW")
                     self.change_state("FW")
 

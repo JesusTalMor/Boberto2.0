@@ -20,7 +20,7 @@ class GoToGoal():
     self.robot_pos = Point()
     self.odom_received = False
 
-    self.active = True
+    self.active = False
     self.current_state = "FIX"
     #? ESTADOS POSIBLES DEL PROGRAMA
     states = {
@@ -29,12 +29,12 @@ class GoToGoal():
       "HERE" : "ON_GOAL",
       "STOP" : "STOP"
     }
-    GOALS = [(1.2, 1.2), (1.2, 2.4)]
-    GOAL_IND = 0
+    # GOALS = [(1.2, 1.2), (1.2, 2.4)]
+    # GOAL_IND = 0
 
     # Define goal point
     self.target = Point()
-    self.target.x, self.target.y = GOALS[GOAL_IND]
+    # self.target.x, self.target.y = GOALS[GOAL_IND]
     self.goal_received = True
 
     self.angle_precision = (np.pi/180.0) * 20.0 # Rango de error de 20 grados
@@ -72,10 +72,10 @@ class GoToGoal():
 
       if error_dist <= self.distance_precision:
         rospy.logwarn("GOAL REACHED")
-        # self.goal_received = False
-        if GOAL_IND + 1 < len(GOALS): GOAL_IND += 1
-        else: GOAL_IND = 0
-        self.target.x ,self.target.y = GOALS[GOAL_IND]
+        # # self.goal_received = False
+        # if GOAL_IND + 1 < len(GOALS): GOAL_IND += 1
+        # else: GOAL_IND = 0
+        # self.target.x ,self.target.y = GOALS[GOAL_IND]
 
       self.compute_GTG(error_theta, error_dist)
       rate.sleep()
@@ -109,7 +109,7 @@ class GoToGoal():
         v = 0.0
       # * Si el error en theta es muy grande apuntar al goal
       elif np.abs(error_theta) > self.angle_precision:
-        kwmax = 0.5 #angular angular speed maximum gain 
+        kwmax = 0.65 #angular angular speed maximum gain 
         aw = 1.75 #Constant to adjust the exponential's growth rate 
         
         kw = self.compute_gain(kwmax, aw, error_theta)
@@ -118,9 +118,9 @@ class GoToGoal():
         v = 0.0
       #* Llegar al objetivo ajustando poco el angulo
       else:
-        kvmax = 0.5 #linear speed maximum gain  
+        kvmax = 0.125 #linear speed maximum gain  
         kwmax = 0.65  #angular angular speed maximum gain 
-        av = 0.5 #Constant to adjust the exponential's growth rate   
+        av = 0.05 #Constant to adjust the exponential's growth rate   
         aw = 1.75 #Constant to adjust the exponential's growth rate 
 
         #Compute the robot's angular speed 
