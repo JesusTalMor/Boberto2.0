@@ -12,7 +12,7 @@ class FollowWalls():
   """
   def __init__(self):  
     rospy.on_shutdown(self.cleanup) # Call the cleanup function before finishing the node.  
-    ###******* INIT PUBLISHERS *******###  
+    #?#********** SUSBCIBERS / PUBLISHERS **********#?# 
     self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
     rospy.Subscriber("base_scan", LaserScan, self.get_ranges) 
     rospy.Subscriber("GOAL", Point, self.get_goal)
@@ -55,10 +55,11 @@ class FollowWalls():
     self.goal_received = False
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
+    self.FW_DISTANCE = 0.3
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("STARTING NODE FW")     
-    ###******* PROGRAM BODY *******###  
+    #?#********** PROGRAM LOOP **********#?#
     while not rospy.is_shutdown(): 
       # if the node is not active, do nothing
       if self.active is False: 
@@ -137,25 +138,25 @@ class FollowWalls():
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.15
+    
+    vel_msg.linear.x = 0.1
     # * Calcular giro de seguridad
     # What side are we following ?
     R = self.areas["Right"]
     L = self.areas["Left"]
-    if R <= 0.3:
-      error_dist = 0.30 - R
-      print("Distancia R: ", round(error_dist, 2))
-    else:
-      error_dist = L - 0.30
-      print("Distancia L: ", round(error_dist, 2))
-      # * error_dist < 0 Girar derecha
-      # * error_dist > 0 Girar Izquierda
+    error_dist = 0.3 - R if R <= 0.3 else L - 0.3
+    # * error_dist < 0 Girar derecha
+    # * error_dist > 0 Girar Izquierda
+    
     kwmax = 10.0  #angular angular speed maximum gain 
     aw = 10.0 #Constant to adjust the exponential's growth rate 
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     w = kw * error_dist 
+    
     w = self.limit_vel(w, 0.1)
+    
     vel_msg.angular.z = w
+    
     self.cmd_vel_pub.publish(vel_msg)
   def sentinel(self):
     vel_msg = Twist()
@@ -185,7 +186,7 @@ class FollowWalls():
     state_description = ""
     areas = self.areas 
 
-    distancia = 0.30
+    distancia = self.FW_DISTANCE
     R = areas['Right'] < distancia
     FR = areas['FRight'] < distancia
     F = areas['Front'] < distancia
@@ -207,7 +208,7 @@ class FollowWalls():
     # ! Hacer Giro de 180 grados
     elif F and FR and R and L and FL:
       state_description = "Cierre Tipo U - Girar 180 Grados"
-      self.current_state = "T_LEFTH"
+      self.current_state = self.turn_decision
     
     # * Girar siguiendo la esquina a la Derecha
     elif R and not F and not FR:
@@ -242,7 +243,7 @@ class FollowWalls():
     
     rospy.loginfo(state_description)
 
-  def get_active(self, msg=Bool):
+  def get_active(self, msg=Bool()):
     self.active = msg.data
   
   def get_odom(self, msg=Point()):
@@ -252,8 +253,6 @@ class FollowWalls():
   
   def get_closet_object(self, lidar_data=LaserScan()):
     """ This function returns the closest object to the robot
-    This functions receives a ROS LaserScan message and returns the distance and direction to the closest object
-    returns  closest_range [m], closest_angle [rad], 
     """ 
     idx_low = 215
     idx_high = 931
@@ -295,20 +294,20 @@ class FollowWalls():
 
   def limit_vel(self, vel, lim):
     sign = 1 if vel > 0.0 else -1
-    vel = vel * sign if np.abs(vel) <= lim else lim * sign
+    vel = vel if np.abs(vel) <= lim else lim * sign
+    if np.abs(vel) > lim: rospy.logwarn("VELOCITY LIMITED")
     return vel
 
 
   def cleanup(self):  
       '''This function is called just before finishing the node.'''
       print("FINISH MESSAGE STOPPING ROBOT")  
-      vel_msg = Twist()
-      self.cmd_vel_pub.publish(vel_msg)
+      self.stop_robot()
 
 ############################### MAIN PROGRAM ####################################  
 
 if __name__ == "__main__":   
-    rospy.init_node('FOLLOWALL') # Node Name
+    rospy.init_node('FOLLOWWALL') # Node Name
     try: FollowWalls()  # Class Name
     except rospy.ROSInterruptException:
       rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")
