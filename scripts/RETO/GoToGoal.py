@@ -29,13 +29,13 @@ class GoToGoal():
       "HERE" : "ON_GOAL",
       "STOP" : "STOP"
     }
-    # GOALS = [(1.2, 1.2), (1.2, 2.4)]
+    # GOALS = [(1.0, 0.0), (0.0, 0.0)]
     # GOAL_IND = 0
 
     # Define goal point
     self.target = Point()
     # self.target.x, self.target.y = GOALS[GOAL_IND]
-    self.goal_received = True
+    self.goal_received = False
 
     self.angle_precision = (np.pi/180.0) * 20.0 # Rango de error de 20 grados
     self.distance_precision = 0.025 # Tolerancia a llegar al Goal
@@ -72,9 +72,10 @@ class GoToGoal():
 
       if error_dist <= self.distance_precision:
         rospy.logwarn("GOAL REACHED")
-        # # self.goal_received = False
+        # # # self.goal_received = False
         # if GOAL_IND + 1 < len(GOALS): GOAL_IND += 1
-        # else: GOAL_IND = 0
+        # else: 
+        #   rospy.logfatal("COMPLETED TASK")
         # self.target.x ,self.target.y = GOALS[GOAL_IND]
 
       self.compute_GTG(error_theta, error_dist)
@@ -130,8 +131,10 @@ class GoToGoal():
         w = kw*error_theta 
         v = kv*error_dist + 0.1
       
-      w = self.limit_vel(w, 0.8)
-      v = self.limit_vel(v, 0.8)
+      # w = self.limit_vel(w, 0.8)
+      # v = self.limit_vel(v, 0.8)
+      w = self.limit_vel(w, 0.4)
+      v = self.limit_vel(v, 0.4)
       
       vel_msg.angular.z = w
       vel_msg.linear.x = v

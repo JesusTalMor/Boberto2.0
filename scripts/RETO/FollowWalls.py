@@ -127,18 +127,18 @@ class FollowWalls():
     self.cmd_vel_pub.publish(vel_msg)
   def turn_right(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.1
-    vel_msg.angular.z = -0.6
+    vel_msg.linear.x = 0.05
+    vel_msg.angular.z = -0.5
     self.cmd_vel_pub.publish(vel_msg)
   def turn_left(self):
     vel_msg = Twist()
-    vel_msg.linear.x = 0.1
-    vel_msg.angular.z = 0.6
+    vel_msg.linear.x = 0.05
+    vel_msg.angular.z = 0.5
     self.cmd_vel_pub.publish(vel_msg)
   def follow_wall(self):
     vel_msg = Twist()
     
-    vel_msg.linear.x = 0.2
+    vel_msg.linear.x = 0.15
     # * Calcular giro de seguridad
     # What side are we following ?
     R = self.areas["Right"]
@@ -152,7 +152,7 @@ class FollowWalls():
     kw = kwmax*(1 - np.exp(-aw * error_dist**2))/abs(error_dist) if error_dist != 0.0 else 0.0 #Constant to change the speed  
     w = kw * error_dist 
     
-    w = self.limit_vel(w, 0.4)
+    w = self.limit_vel(w, 0.3)
     
     vel_msg.angular.z = w
     

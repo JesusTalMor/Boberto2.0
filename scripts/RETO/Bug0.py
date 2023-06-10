@@ -27,8 +27,10 @@ class Bug0():
         self.odom_received = False
 
         GOALS = [
-            (1.2, 0.6), 
-            (1.2, 3.0)
+            (0.6, 0.28), 
+            (1.6, 0.4),
+            (1.6, 2.0),
+            (0.6, 1.9)
         ]
 
         GOAL_INDX = 0
@@ -79,19 +81,20 @@ class Bug0():
                 continue
 
             if self.goal_received is False:
-                rospy.logwarn("WAIT GOAL")
+                # rospy.logwarn("WAIT GOAL")
                 self.gtg_topic.publish(False)
                 self.fw_topic.publish(False)
                 self.gtg_active = False
                 self.fw_active = False
                 self.stop_robot()
                 if GOAL_INDX + 1 < len(GOALS):
+                    rospy.logwarn("CHANGE GOAL")
                     GOAL_INDX += 1
                     self.target.x, self.target.y = GOALS[GOAL_INDX]
                     self.goal_received = True
                 else:
                     rospy.logwarn("RUTINA COMPLETA")
-                    GOAL_INDX =  0
+                    # GOAL_INDX =  0
                 rate.sleep()
                 continue
 
@@ -144,7 +147,7 @@ class Bug0():
                 self.change_state("STOP")
 
             elif self.current_state == "GTG":
-                if closest_dist < 0.5:
+                if closest_dist < 0.25:
                     print("WALL DETECTED - CHANGE TO FW")
                     self.change_state("FW")
 
