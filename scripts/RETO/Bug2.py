@@ -15,6 +15,7 @@ class Bug2():
       ###******* INIT PUBLISHERS *******###  
       rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
       rospy.Subscriber('position', Point, self.get_odom)
+      rospy.Subscriber('bug_topic', Bool, self.get_active)
       self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1) 
       self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
       self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)    
@@ -27,17 +28,14 @@ class Bug2():
 
       # Definicion de punto inicial y goal
       self.initial_pos = Point()
-      GOAL_ARRAY = [
-         (0.51, 2.08),
-         (2.39, 4.77),
-         (1.79, 3.57),
-         (1.53, 1.30),
-         (1.42, 0.21)
+      GOALS = [
+         (1.2, 0.6), 
+         (1.2, 3.0)
       ]
 
       GOAL_INDX = 0
       self.target = Point()
-      self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+      self.target.x, self.target.y = GOALS[GOAL_INDX]
       self.goal_received = True
 
       # Banderas de estados
@@ -45,6 +43,7 @@ class Bug2():
       self.region_received = False
       self.gtg_active = False
       self.fw_active = False
+      self.active = False
 
       # Definicion de estados
       self.current_state = "GTG"
@@ -68,6 +67,16 @@ class Bug2():
       ###******* PROGRAM BODY *******###  
       while not rospy.is_shutdown(): 
          # El programa jala hasta que reciba un GOAL
+         if self.active is False:
+            rospy.logwarn("NODE OFF")
+            self.gtg_topic.publish(False)
+            self.fw_topic.publish(False)
+            self.gtg_active = False
+            self.fw_active = False
+            self.stop_robot()
+            rate.sleep()
+            continue
+
          if self.goal_received is False:
             rospy.logwarn("WAIT GOAL")
             self.gtg_topic.publish(False)
@@ -75,12 +84,13 @@ class Bug2():
             self.gtg_active = False
             self.fw_active = False
             self.stop_robot()
-            if GOAL_INDX + 1 < len(GOAL_ARRAY):
+            if GOAL_INDX + 1 < len(GOALS):
                GOAL_INDX += 1
-               self.target.x, self.target.y = GOAL_ARRAY[GOAL_INDX]
+               self.target.x, self.target.y = GOALS[GOAL_INDX]
                self.goal_received = True
             else:
                rospy.logwarn("RUTINA COMPLETA")
+               # GOAL_INDX = 0
             rate.sleep()
             continue
 
@@ -204,6 +214,9 @@ class Bug2():
    def get_goal(self, msg=Point()):
       self.target = msg
       self.goal_received = True
+
+   def get_active(self, msg=Bool()):
+      self.active = msg
    
    #?# ********** GETTERS **********#?#
    def get_closet_object(self, lidar_data=LaserScan()):
