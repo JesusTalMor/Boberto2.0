@@ -27,15 +27,15 @@ class Bug0():
         self.odom_received = False
 
         GOALS = [
-            (0.6, 0.28), 
-            (1.6, 0.4),
-            (1.6, 2.0),
-            (0.6, 1.9)
+            (0.6, 0.28, -np.pi/2.0), 
+            (1.6, 0.4, 1000.0),
+            (1.6, 2.0, 1000.0),
+            (0.6, 1.9, np.pi/2.0)
         ]
 
         GOAL_INDX = 0
         self.target = Point()
-        self.target.x, self.target.y = GOALS[GOAL_INDX]
+        self.target.x, self.target.y, self.target.z = GOALS[GOAL_INDX]
         self.goal_received = True
     
         # Bandera para indicar que el lidar recibio datos 
@@ -50,23 +50,23 @@ class Bug0():
 
 
         states = {
+        "FIX" : "FIX_ANGLE",
         "GTG" : "GO_TO_GOAL",
         "FW" : "WALL_FOLLOWER",
         "S" : "STOP"
         }
 
-        progress = 0.1 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
+        follow_wall_distance = 0.3
+        progress = 0.25 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
         self.d_t = 0.0
         self.D_Fw = 0.0
         goal_tolance = 0.025
+        theta_precision = (np.pi/180.0) * 2.0
 
 
         rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
         rospy.loginfo("Starting Message!")     
-        # Grab possible simulation Error
-        # while rospy.get_time() == 0: 
-        #   print("no simulated time has been received yet") 
-        # start_time = rospy.get_time()  #Get the current time in float seconds 
+
         ###******* PROGRAM BODY *******###  
         while not rospy.is_shutdown(): 
             # * Whole Body of the Program
@@ -90,7 +90,7 @@ class Bug0():
                 if GOAL_INDX + 1 < len(GOALS):
                     rospy.logwarn("CHANGE GOAL")
                     GOAL_INDX += 1
-                    self.target.x, self.target.y = GOALS[GOAL_INDX]
+                    self.target.x, self.target.y, self.target.z = GOALS[GOAL_INDX]
                     self.goal_received = True
                 else:
                     rospy.logwarn("RUTINA COMPLETA")
@@ -125,8 +125,10 @@ class Bug0():
             # Go To Goal obstacle theta 
             thetaGTG = self.get_theta_gtg(self.target, self.robot_pos)
             
+            thetaGOAL = self.get_theta_goal(self.target, self.robot_pos)
+
             # Distance to Goal
-            self.d_t = self.get_distance_to_goal(self.target,self.robot_pos)
+            self.d_t = self.get_distance_to_goal(self.target,self.robot_pos) if self.current_state != "FIX" else 0.0
 
             # Calcular Angulo de Clear SHOT
             theta_clear_shot = np.abs(self.limit_angle(thetaAO-thetaGTG))
@@ -134,8 +136,8 @@ class Bug0():
             FW_progress = self.D_Fw - self.d_t
             
             #?#********** MAQUINA DE ESTADOS **********#?#
-            rospy.logerr("CURRENT GOAL: " + str(self.target.x) + "," + str(self.target.y))
             rospy.logerr("CURRENT STATE: " + str(self.current_state))
+            rospy.logerr("CURRENT GOAL: (" + str(self.target.x) + "," + str(self.target.y) + ")")
             rospy.loginfo("----------------------------------------------")
             rospy.loginfo("DISTANCE TO GOAL: " + str(round(self.d_t, 2)))
             rospy.loginfo("FW PROGRESS: " + str(round(FW_progress,2)) + " | " + str(FW_progress >= progress))
@@ -143,11 +145,15 @@ class Bug0():
             rospy.loginfo("----------------------------------------------\n\n")
 
             if self.d_t < goal_tolance:
-                rospy.loginfo("GOAL REACHED")
-                self.change_state("STOP")
+                # Calcular Angulo de error
+                if np.abs(thetaGOAL) > theta_precision:
+                    self.current_state = "FIX"
+                else:        
+                    rospy.logwarn("GOAL REACHED")
+                    self.change_state("STOP")
 
             elif self.current_state == "GTG":
-                if closest_dist < 0.25:
+                if closest_dist < follow_wall_distance:
                     print("WALL DETECTED - CHANGE TO FW")
                     self.change_state("FW")
 
@@ -253,6 +259,13 @@ class Bug0():
         #This part is very important to avoid abrupt changes when error switches between 0 and +-2pi 
         e_theta = self.limit_angle(e_theta)
         return e_theta
+    
+    def get_theta_goal(self, target_pos=Point(), robot_pos=Point()):
+        target_theta = target_pos.z
+        robot_theta = robot_pos.z
+        target_theta = self.limit_angle(target_theta) if target_theta != 1000.0 else robot_theta
+        theta_goal = self.limit_angle(target_theta - robot_theta)
+        return theta_goal
 
     def get_distance_to_goal(self, target = Point(), robot_pos = Point()):
         delta_x = target.x - robot_pos.x
@@ -268,17 +281,17 @@ class Bug0():
         self.cmd_vel_pub.publish(vel_msg)
 
     def cleanup(self):  
+        '''This function is called just before finishing the node.'''
         self.gtg_topic.publish(False)
         self.fw_topic.publish(False)
         self.gtg_active = False
         self.fw_active = False
         self.stop_robot()
-        '''This function is called just before finishing the node.'''
         print("Finish Message!!!")  
 ############################### MAIN PROGRAM ####################################  
 
 if __name__ == "__main__":   
-    rospy.init_node('Bug0') # Node Name
+    rospy.init_node('BUG0_NODE') # Node Name
     try: Bug0()  # Class Name
     except rospy.ROSInterruptException:
         rospy.logwarn("EXECUTION COMPELTED SUCCESFULLY")

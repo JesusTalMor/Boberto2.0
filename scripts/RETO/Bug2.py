@@ -29,13 +29,13 @@ class Bug2():
       # Definicion de punto inicial y goal
       self.initial_pos = Point()
       GOALS = [
-         (1.2, 0.6), 
-         (1.2, 3.0)
+         (3.0, 1.0, 1000.0), 
+         (0.0, 0.0, 0.0)
       ]
 
       GOAL_INDX = 0
       self.target = Point()
-      self.target.x, self.target.y = GOALS[GOAL_INDX]
+      self.target.x, self.target.y, self.target.z = GOALS[GOAL_INDX]
       self.goal_received = True
 
       # Banderas de estados
@@ -43,11 +43,12 @@ class Bug2():
       self.region_received = False
       self.gtg_active = False
       self.fw_active = False
-      self.active = False
+      self.active = True
 
       # Definicion de estados
       self.current_state = "GTG"
       states = {
+         "FIX" : "FIX_ANGLE",
          "GTG" : "GO_TO_GOAL",
          "FW" : "WALL_FOLLOWER",
          "S" : "STOP" 
@@ -55,11 +56,13 @@ class Bug2():
 
       
       # Variables
+      follow_wall_distance = 0.4
       progress = 0.25 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
       tolerance = 0.05 # 0.05 Si el robot esta asi de cerca de la linea con respecto a cuando cambio a FW, cambiara a gtg
       self.d_t = 0.0
       self.D_Fw = 0.0
       goal_tolerance = 0.025
+      theta_precision = (np.pi/180.0) * 2.0
 
       rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
       rospy.loginfo("Starting Message!")     
@@ -78,15 +81,16 @@ class Bug2():
             continue
 
          if self.goal_received is False:
-            rospy.logwarn("WAIT GOAL")
+            # rospy.logwarn("WAIT GOAL")
             self.gtg_topic.publish(False)
             self.fw_topic.publish(False)
             self.gtg_active = False
             self.fw_active = False
             self.stop_robot()
             if GOAL_INDX + 1 < len(GOALS):
+               rospy.logwarn("CHANGE GOAL")
                GOAL_INDX += 1
-               self.target.x, self.target.y = GOALS[GOAL_INDX]
+               self.target.x, self.target.y, self.target.z = GOALS[GOAL_INDX]
                self.goal_received = True
             else:
                rospy.logwarn("RUTINA COMPLETA")
@@ -126,8 +130,10 @@ class Bug2():
          # Calcula el angulo para rodear obstaculo 
          thetaGTG = self.get_theta_gtg(self.target, self.robot_pos) 
 
+         thetaGOAL = self.get_theta_goal(self.target, self.robot_pos)
+
          # Distancia al goal
-         self.d_t = self.get_distance_to_goal(self.target, self.robot_pos)
+         self.d_t = self.get_distance_to_goal(self.target, self.robot_pos) if self.current_state != "FIX" else 0.0
 
          # Calcular Angulo de Clear SHOT
          theta_clear_shot = np.abs(self.limit_angle(thetaAO-thetaGTG))
@@ -136,7 +142,7 @@ class Bug2():
          
          #?#********** MAQUINA DE ESTADOS **********#?#
          rospy.logerr("CURRENT STATE: " + str(self.current_state))
-         rospy.loginfo("CURRENT GOAL: " + str(self.target.x) + "," + str(self.target.y))
+         rospy.loginfo("CURRENT GOAL: (" + str(self.target.x) + "," + str(self.target.y) + ")")
          rospy.loginfo("----------------------------------------------")
          rospy.loginfo("DISTANCE TO GOAL: " + str(round(self.d_t, 2)))
          rospy.loginfo("FW PROGRESS: " + str(round(FW_progress,2)) + " | " + str(FW_progress >= progress))
@@ -145,12 +151,17 @@ class Bug2():
          rospy.loginfo("----------------------------------------------\n\n")
          
          if self.d_t <= goal_tolerance:
-            rospy.logwarn("GOAL REACHED")
-            self.change_state("STOP")
+            # Calcular Angulo de error
+            if np.abs(thetaGOAL) > theta_precision:
+               self.current_state = "FIX"
+            else:        
+               rospy.logwarn("GOAL REACHED")
+               self.change_state("STOP")
+
          
          elif self.current_state == "GTG":
             # Si hay un obstaculo, cambia a comportamiento de FW
-            if closest_dist <= 0.35:
+            if closest_dist <= follow_wall_distance:
                rospy.logwarn("WALL DETECTED - CHANGE TO FW")
                self.change_state("FW")
          
@@ -255,6 +266,13 @@ class Bug2():
       #This part is very important to avoid abrupt changes when error switches between 0 and +-2pi 
       e_theta = self.limit_angle(e_theta)
       return e_theta
+   
+   def get_theta_goal(self, target_pos=Point(), robot_pos=Point()):
+      target_theta = target_pos.z
+      robot_theta = robot_pos.z
+      target_theta = self.limit_angle(target_theta) if target_theta != 1000.0 else robot_theta
+      theta_goal = self.limit_angle(target_theta - robot_theta)
+      return theta_goal
    
    def get_distance_to_line(self, target=Point(), initial_pos=Point(), actual_pos=Point()):
       up = math.fabs((target.y - initial_pos.y) * actual_pos.x - (target.x - initial_pos.x) * actual_pos.y + (target.x * initial_pos.y) - (target.y * initial_pos.x))
