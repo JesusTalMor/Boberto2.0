@@ -41,9 +41,9 @@ class KF_NODE():
         w = 0.0 # Velocidad Angular [m/s]
 
         #?#*********** POSITION #?#***********
-        self.x = 0.0 # Posicion Inicial en X del Robot
-        self.y = 0.0 # Posicion Inicial en Y del Robot
-        self.theta = 0.0 # Orientacion Inicial en Z del Robot
+        self.x = 0.6 # Posicion Inicial en X del Robot
+        self.y = 0.23 # Posicion Inicial en Y del Robot
+        self.theta = -np.pi/2.0 # Orientacion Inicial en Z del Robot
 
         self.P = np.zeros([3,3]) # Matriz de Covarianza del Robot
 
@@ -63,10 +63,11 @@ class KF_NODE():
         #     706: (1.44,2.3),
         # }
         self.POS_ARUCOS = {
-            701 : (1.8, 2.4),
+            701 : (2.4, 2.4),
             702 : (0.0, 1.8),
             705 : (2.4, 0.0),
-            706 : (0.0, 0.0)
+            706 : (0.0, 0.0),
+            703 : (0.6, 2.4),
         }
 
         rospy.loginfo("STARTING KF NODE")

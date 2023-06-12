@@ -129,9 +129,9 @@ class GoToGoal():
       v = 0.0
     #* Llegar al objetivo ajustando poco el angulo
     else:
-      kvmax = 0.9 #linear speed maximum gain  
+      kvmax = 0.65 #linear speed maximum gain  
       kwmax = 0.65  #angular angular speed maximum gain 
-      av = 0.095 #Constant to adjust the exponential's growth rate   
+      av = 0.16 #Constant to adjust the exponential's growth rate   
       aw = 1.75 #Constant to adjust the exponential's growth rate 
 
       #Compute the robot's angular speed 
@@ -144,7 +144,7 @@ class GoToGoal():
     # w = self.limit_vel(w, 0.8)
     # v = self.limit_vel(v, 0.8)
     w = self.limit_vel(w, 0.4)
-    v = self.limit_vel(v, 0.4)
+    v = self.limit_vel(v, 0.3)
     
     vel_msg.angular.z = w
     vel_msg.linear.x = v
@@ -165,8 +165,8 @@ class GoToGoal():
       w = 0.0
       v = 0.0
     
-    w = self.limit_vel(w, 0.4)
-    v = self.limit_vel(v, 0.4)
+    w = self.limit_vel(w, 0.5)
+    v = self.limit_vel(v, 0.3)
     
     vel_msg.angular.z = w
     vel_msg.linear.x = v

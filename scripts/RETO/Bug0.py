@@ -20,6 +20,7 @@ class Bug0():
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
         self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)
+        self.pick_pub = rospy.Publisher('Pick', Bool, queue_size=1)
         self.goal_pub = rospy.Publisher('GOAL', Point, queue_size=1)
         ###******* INIT CONSTANTS/VARIABLES *******###  
         # Posicion del Robot
@@ -27,10 +28,10 @@ class Bug0():
         self.odom_received = False
 
         GOALS = [
-            (0.6, 0.28, -np.pi/2.0), 
-            (1.6, 0.4, 1000.0),
-            (1.6, 2.0, 1000.0),
-            (0.6, 1.9, np.pi/2.0)
+            (0.6, 0.23, 1000.0), 
+            (1.6, 0.30, 1000.0),
+            (1.8, 2.0, 1000.0),
+            (0.6, 2.0, np.pi/2.0),
         ]
 
         GOAL_INDX = 0
@@ -56,7 +57,7 @@ class Bug0():
         "S" : "STOP"
         }
 
-        follow_wall_distance = 0.3
+        follow_wall_distance = 0.35
         progress = 0.25 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
         self.d_t = 0.0
         self.D_Fw = 0.0
@@ -94,6 +95,7 @@ class Bug0():
                     self.goal_received = True
                 else:
                     rospy.logwarn("RUTINA COMPLETA")
+                    self.pick_pub.publish(True)
                     # GOAL_INDX =  0
                 rate.sleep()
                 continue
