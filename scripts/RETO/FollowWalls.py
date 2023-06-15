@@ -54,7 +54,7 @@ class FollowWalls():
     self.goal_received = True
 
     #?#********** FOLLOW WALL CONSTANTS **********#?#
-    self.FW_DISTANCE = 0.3
+    self.FW_DISTANCE = 0.25
 
     rate = rospy.Rate(10) # The rate of the while loop will be 50Hz 
     rospy.loginfo("STARTING NODE FW")     
@@ -253,11 +253,11 @@ class FollowWalls():
   def get_closet_object(self, lidar_data=LaserScan()):
     """ This function returns the closest object to the robot
     """ 
-    idx_low = 215
-    idx_high = 931
-    data = lidar_data.ranges[idx_low:idx_high]
-    min_idx = np.argmin(data) 
-    closest_angle = lidar_data.angle_min + (min_idx + idx_low) * lidar_data.angle_increment 
+    # idx_low = 215
+    # idx_high = 931
+    # data = lidar_data.ranges[idx_low:idx_high]
+    min_idx = np.argmin(lidar_data) 
+    closest_angle = lidar_data.angle_min + (min_idx * lidar_data.angle_increment)
     # limit the angle to [-pi, pi] 
     closest_angle = self.limit_angle(closest_angle) 
     return closest_angle 
@@ -282,10 +282,10 @@ class FollowWalls():
     diff_theta = self.limit_angle(thetaFW - theta_goal)
     diff_theta = np.abs(diff_theta)
     # diff_theta = self.limit_angle(diff_theta)
-    if diff_theta < np.pi/2.0:
-      return "T_LEFTH"
-    else:
+    if diff_theta <= np.pi/2.0:
       return "T_RIGHTH"
+    else:
+      return "T_LEFTH"
   
   def limit_angle(self, angle):
     """Funcion para limitar de -PI a PI cualquier angulo de entrada"""

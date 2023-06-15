@@ -17,6 +17,7 @@ class Bug0():
         rospy.Subscriber("base_scan", LaserScan, self.get_lidar_cb)
         rospy.Subscriber('position', Point, self.get_odom)
         rospy.Subscriber('bug_topic', Bool, self.get_active)
+        rospy.Subscriber('go_home', Bool, self.get_home)
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.gtg_topic = rospy.Publisher('gtg_topic', Bool, queue_size=1)
         self.fw_topic = rospy.Publisher('fw_topic', Bool, queue_size=1)
@@ -28,10 +29,13 @@ class Bug0():
         self.odom_received = False
 
         GOALS = [
-            (0.6, 0.23, 1000.0), 
-            (1.6, 0.30, 1000.0),
-            (1.8, 2.0, 1000.0),
-            (0.6, 2.0, np.pi/2.0),
+            (0.6, 0.22, 1000.0), 
+            (1.68, 0.32, 1000.0),
+            (2.11, 1.99, 1000.0),
+            (0.6, 2, np.pi/2.0),
+            (2.11, 1.99, 1000.0),
+            (1.68, 0.32, 1000.0),
+            (0.6, 0.22, -np.pi/2.0), 
         ]
 
         GOAL_INDX = 0
@@ -44,7 +48,8 @@ class Bug0():
         self.region_active = False 
         self.gtg_active = False
         self.fw_active = False
-        self.active = False
+        self.active = True
+        self.go_home = True
 
         # Definicion de estados
         self.current_state = "GTG"
@@ -57,7 +62,7 @@ class Bug0():
         "S" : "STOP"
         }
 
-        follow_wall_distance = 0.35
+        follow_wall_distance = 0.4
         progress = 0.25 # Para verificar si el robot avanzo esta distancia antes de cambiar de estado
         self.d_t = 0.0
         self.D_Fw = 0.0
@@ -88,14 +93,16 @@ class Bug0():
                 self.gtg_active = False
                 self.fw_active = False
                 self.stop_robot()
-                if GOAL_INDX + 1 < len(GOALS):
+                if GOAL_INDX == 3 and self.go_home is False:
+                    rospy.logwarn("RUTINA COMPLETA")
+                    self.pick_pub.publish(True)
+                elif GOAL_INDX + 1 < len(GOALS):
                     rospy.logwarn("CHANGE GOAL")
                     GOAL_INDX += 1
                     self.target.x, self.target.y, self.target.z = GOALS[GOAL_INDX]
                     self.goal_received = True
                 else:
-                    rospy.logwarn("RUTINA COMPLETA")
-                    self.pick_pub.publish(True)
+                    rospy.logwarn("RUTINA COMPLETA - EN HOME")
                     # GOAL_INDX =  0
                 rate.sleep()
                 continue
@@ -218,6 +225,10 @@ class Bug0():
         # if self.goal_recieved is False:
         self.target = msg
         self.goal_received = True
+
+    def get_home(self, msg=Bool()):
+        # if self.goal_recieved is False:
+        self.go_home = msg
     
     def get_active(self, msg=Bool()):
         self.active = msg
@@ -225,8 +236,8 @@ class Bug0():
     #?# ********** GETTERS **********#?#
     def get_closest_object(self,lidar_data = LaserScan()):
         # Para delimitar region de al frente del robot
-        idx_low = 360
-        idx_high = 788
+        idx_low = 503
+        idx_high = 645
         front_data = lidar_data.ranges[idx_low:idx_high]
 
         Front = min(min(front_data), 10)

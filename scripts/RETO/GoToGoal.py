@@ -143,8 +143,8 @@ class GoToGoal():
     
     # w = self.limit_vel(w, 0.8)
     # v = self.limit_vel(v, 0.8)
-    w = self.limit_vel(w, 0.4)
-    v = self.limit_vel(v, 0.3)
+    w = self.limit_vel(w, 0.3)
+    v = self.limit_vel(v, 0.2)
     
     vel_msg.angular.z = w
     vel_msg.linear.x = v
@@ -165,8 +165,8 @@ class GoToGoal():
       w = 0.0
       v = 0.0
     
-    w = self.limit_vel(w, 0.5)
-    v = self.limit_vel(v, 0.3)
+    w = self.limit_vel(w, 0.4)
+    v = self.limit_vel(v, 0.1)
     
     vel_msg.angular.z = w
     vel_msg.linear.x = v
